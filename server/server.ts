@@ -77,12 +77,11 @@ app.post('/api/send-email', async (req, res) => {
     } = req.body || {};
 
     const from = process.env.FROM_EMAIL || 'no-reply@example.com';
-    const adminEmail = process.env.ADMIN_EMAIL || 'payments@exceedlearningcenterny.com';
     const adminRecipients = [
-      adminEmail,
-      'rechcelttoledo@gmail.com',
+      'Info@exceedlearningcenterny.com',
+      'olganyc21@gmail.com',
       'phcodesage@gmail.com',
-    ].filter(Boolean);
+    ];
 
     const subject = `New Afterschool Registration - ${form?.childName || 'Child'} (${pricingInput?.frequency || ''})`;
 
