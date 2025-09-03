@@ -95,6 +95,9 @@ app.post('/api/send-email', async (req, res) => {
       `Special: ${form?.specialInstructions || 'N/A'}`,
       '',
       `Schedule: ${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}`,
+      `Extension hours: ${pricingInput?.extensionsEnabled ? `Enabled (${pricingInput?.timeBlock})` : 'Disabled'}`,
+      `Abacus: ${pricingInput?.abacusEnabled ? 'Enabled' : 'Disabled'}`,
+      `Carrington waiver: ${pricingInput?.isCarrington ? 'Yes' : 'No'}`,
       `Base weekly: $${pricing?.baseWeekly?.toFixed?.(2)}`,
       `Add-ons weekly: $${pricing?.addOnWeekly?.toFixed?.(2)}`,
       `Abacus weekly: $${pricing?.abacusWeekly?.toFixed?.(2)}`,
@@ -150,6 +153,9 @@ app.post('/api/send-email', async (req, res) => {
         '',
         'Schedule:',
         `• ${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}`,
+        `• Extension hours: ${pricingInput?.extensionsEnabled ? `Enabled (${pricingInput?.timeBlock})` : 'Disabled'}`,
+        `• Abacus: ${pricingInput?.abacusEnabled ? 'Enabled' : 'Disabled'}`,
+        `• Carrington waiver: ${pricingInput?.isCarrington ? 'Yes' : 'No'}`,
         '',
         'Price breakdown (per week):',
         `• Base weekly: $${pricing?.baseWeekly?.toFixed?.(2)}`,
@@ -190,6 +196,11 @@ app.post('/api/send-email', async (req, res) => {
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin:0 0 14px">
             <h3 style="margin:0 0 8px; font-size:16px">Schedule</h3>
             <p style="margin:0">${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}</p>
+            <ul style="margin:6px 0 0; padding-left:18px; line-height:1.6">
+              <li>Extension hours: <strong>${pricingInput?.extensionsEnabled ? `Enabled (${pricingInput?.timeBlock})` : 'Disabled'}</strong></li>
+              <li>Abacus: <strong>${pricingInput?.abacusEnabled ? 'Enabled' : 'Disabled'}</strong></li>
+              <li>Carrington waiver: <strong>${pricingInput?.isCarrington ? 'Yes' : 'No'}</strong></li>
+            </ul>
           </div>
 
           <div style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin:0 0 14px">
