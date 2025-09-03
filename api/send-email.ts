@@ -1,11 +1,8 @@
 // Vercel Serverless Function for sending registration emails
 // Mirrors the logic from server/server.ts without starting an Express server
 
-import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
-
-dotenv.config();
 
 let smtpTransporter: nodemailer.Transporter | null = null;
 function getSmtpTransporter() {
@@ -97,8 +94,8 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ ok: false, error: 'FROM_EMAIL not set in environment' });
     }
     const provider = (process.env.EMAIL_PROVIDER || '').toLowerCase();
-    if (provider !== 'smtp' && !process.env.RESEND_API_KEY) {
-      return res.status(500).json({ ok: false, error: 'RESEND_API_KEY not set in environment' });
+    if (provider !== 'smtp' && !process.env.SMTP_HOST && !process.env.RESEND_API_KEY) {
+      return res.status(500).json({ ok: false, error: 'Email provider not configured. Set EMAIL_PROVIDER=smtp with SMTP_* vars, or provide RESEND_API_KEY.' });
     }
 
     // Send to admin
