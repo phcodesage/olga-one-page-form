@@ -4,6 +4,7 @@ import { calculatePrice, type TimeBlock, type School, type BillingFrequency } fr
 import { QRCodeCanvas } from 'qrcode.react';
 
 function App() {
+  const apiBase = (import.meta as any).env?.VITE_API_BASE ? String((import.meta as any).env.VITE_API_BASE).replace(/\/$/, '') : '';
   const [selectedOption, setSelectedOption] = useState('');
   const [formData, setFormData] = useState({
     childName: '',
@@ -60,7 +61,7 @@ function App() {
     console.log('Form submitted:', payload);
 
     try {
-      const res = await fetch('/api/send-email', {
+      const res = await fetch(`${apiBase}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,22 +97,34 @@ function App() {
 
   const pricingOptions = [
     {
+      id: '1day',
+      title: '4–5 PM, 1 day a week',
+      description: 'Great for trying us out',
+      price: '$75/month'
+    },
+    {
       id: '2days',
       title: '4–5 PM, 2 days a week',
       description: 'Perfect for light afterschool support',
-      price: '$120/month'
+      price: '$150/month'
     },
     {
       id: '3days',
       title: '4–5 PM, 3 days a week',
       description: 'Balanced schedule for consistent learning',
-      price: '$160/month'
+      price: '$225/month'
     },
     {
       id: '4days',
-      title: '4–5 PM, 4 days a week — get 5th day free',
-      description: 'Best value with bonus day included',
-      price: '$200/month',
+      title: '4–5 PM, 4 days a week',
+      description: 'More support throughout the week',
+      price: '$300/month'
+    },
+    {
+      id: '5days',
+      title: '4–5 PM, 5 days a week',
+      description: 'Full-week coverage',
+      price: '$375/month',
       popular: true
     }
   ];
