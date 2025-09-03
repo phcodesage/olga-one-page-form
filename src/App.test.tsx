@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 
@@ -14,7 +14,7 @@ describe('App form', () => {
   });
 
   afterEach(() => {
-    window.alert = originalAlert;
+    window.alert = originalAlert;   
     console.log = originalConsoleLog;
   });
 
@@ -53,17 +53,19 @@ describe('App form', () => {
     const submitBtn = screen.getByRole('button', { name: /Complete Registration/i });
     await user.click(submitBtn);
 
-    // Assert alert was shown
-    expect(window.alert).toHaveBeenCalled();
+    // Assert alert was shown (wrap in waitFor to satisfy act)
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalled();
+    });
 
-    // Assert console.log captured composed phone numbers
-    expect(console.log).toHaveBeenCalled();
-    // Vitest: vi.fn stores calls on .mock.calls
-    const calls: any[][] = (console.log as any).mock.calls ?? [];
-    const payload = calls.find((call) => String(call[0]).includes('Form submitted:'))?.[1];
-
-    expect(payload).toBeTruthy();
-    expect(payload.phoneFull).toBe('+44 7123456789');
-    expect(payload.emergencyPhoneFull).toBe('+61 401234567');
+    // Assert console.log captured composed phone numbers (also in waitFor)
+    await waitFor(() => {
+      expect(console.log).toHaveBeenCalled();
+      const calls: any[][] = (console.log as any).mock.calls ?? [];
+      const payload = calls.find((call) => String(call[0]).includes('Form submitted:'))?.[1];
+      expect(payload).toBeTruthy();
+      expect(payload.phoneFull).toBe('+44 7123456789');
+      expect(payload.emergencyPhoneFull).toBe('+61 401234567');
+    });
   });
 });

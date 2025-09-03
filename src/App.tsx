@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Calendar, DollarSign, FileText } from 'lucide-react';
+import { calculatePrice, type TimeBlock, type School, type BillingFrequency } from './utils/pricing';
+import { QRCodeCanvas } from 'qrcode.react';
 
 function App() {
   const [selectedOption, setSelectedOption] = useState('');
@@ -13,8 +15,17 @@ function App() {
     emergencyPhoneCountry: '+1',
     emergencyPhone: '',
     allergies: '',
-    specialInstructions: ''
+    specialInstructions: '',
+    zellePayerName: '',
+    zelleConfirmation: '',
+    paymentNotes: '',
   });
+
+  // Pricing UI state
+  const [daysPerWeek, setDaysPerWeek] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [timeBlock, setTimeBlock] = useState<TimeBlock>('4-6');
+  const [school, setSchool] = useState<School>('Searingtown');
+  const [frequency, setFrequency] = useState<BillingFrequency>('monthly');
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -29,11 +40,15 @@ function App() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission
+    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency });
     console.log('Form submitted:', {
       selectedOption,
       ...formData,
       phoneFull: `${formData.phoneCountry} ${formData.phone}`,
       emergencyPhoneFull: `${formData.emergencyPhoneCountry} ${formData.emergencyPhone}`,
+      pricingInput: { daysPerWeek, timeBlock, school, frequency },
+      pricing,
+      paymentMethod: 'Zelle',
     });
     alert('Thank you for your registration! We will contact you shortly.');
   };
@@ -59,6 +74,41 @@ function App() {
       popular: true
     }
   ];
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard');
+    } catch (e) {
+      console.error('Copy failed', e);
+    }
+  };
+
+  const price = useMemo(() =>
+    calculatePrice({ daysPerWeek, timeBlock, school, frequency })
+  , [daysPerWeek, timeBlock, school, frequency]);
+
+  const qrRef = useRef<HTMLCanvasElement | null>(null);
+  const qrPayload = useMemo(() => {
+    const memo = `Afterschool - ${formData.childName || 'Child Name'} - ${formData.parentName || 'Parent Name'}`;
+    return JSON.stringify({
+      method: 'ZELLE',
+      to: 'payments@exceedlearningcenterny.com',
+      amount: Number(price.totalForPeriod.toFixed(2)),
+      currency: 'USD',
+      memo,
+    });
+  }, [formData.childName, formData.parentName, price.totalForPeriod]);
+
+  const downloadQrPng = () => {
+    const canvas = qrRef.current;
+    if (!canvas) return;
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'zelle-payment-qr.png';
+    a.click();
+  };
 
   // Minimal country list with flags and dial codes (no external deps)
   const countries = [
@@ -89,9 +139,9 @@ function App() {
             <h2 className="text-2xl font-bold text-rose-700 mb-2">
               Searingtown Elementary School Special
             </h2>
-            <p className="text-xl font-semibold text-orange-800">50% Off First Month!</p>
+            <p className="text-xl font-semibold text-orange-800">40% Off</p>
             <p className="text-orange-700 mt-2">Exclusive discount for Searingtown families</p>
-          </div>
+          </div>  
 
           {/* Program Options */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -143,6 +193,112 @@ function App() {
                   </div>
                 </label>
               ))}
+            </div>
+          </section>
+
+          {/* Pricing & Schedule (dynamic) */}
+          <section className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-6">
+              <DollarSign className="w-6 h-6 text-rose-600 mr-3" />
+              <h2 className="text-2xl font-bold text-rose-700">Pricing & Schedule</h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Days per week */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Days per Week</label>
+                <select
+                  value={daysPerWeek}
+                  onChange={(e) => setDaysPerWeek(Number(e.target.value) as 1 | 2 | 3 | 4 | 5)}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                >
+                  {[1,2,3,4,5].map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Time block */}
+              <div>
+                <span className="block text-sm font-medium text-gray-700 mb-2">Time Block</span>
+                <div className="grid gap-2">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="timeBlock" value="4-6" checked={timeBlock === '4-6'} onChange={() => setTimeBlock('4-6')} />
+                    <span>4–6 PM (base)</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="timeBlock" value="3-6" checked={timeBlock === '3-6'} onChange={() => setTimeBlock('3-6')} />
+                    <span>3–6 PM (+$30/day)</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="timeBlock" value="4-7" checked={timeBlock === '4-7'} onChange={() => setTimeBlock('4-7')} />
+                    <span>4–7 PM (+$30/day)</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="timeBlock" value="3-7" checked={timeBlock === '3-7'} onChange={() => setTimeBlock('3-7')} />
+                    <span>3–7 PM (+$50/day)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* School selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">School</label>
+                <select
+                  value={school}
+                  onChange={(e) => setSchool(e.target.value as School)}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                >
+                  <option value="Searingtown">Searingtown (40% off)</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Billing frequency */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Billing Frequency</label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value as BillingFrequency)}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="3months">3 Months</option>
+                  <option value="6months">6 Months</option>
+                  <option value="year">Full Year</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Price breakdown */}
+            <div className="mt-6 grid md:grid-cols-2 gap-6">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Weekly Breakdown</h3>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  <li className="flex justify-between"><span>Base</span><span>${price.baseWeekly.toFixed(2)}</span></li>
+                  <li className="flex justify-between"><span>Time add-ons</span><span>${price.addOnWeekly.toFixed(2)}</span></li>
+                  <li className="flex justify-between font-medium"><span>Subtotal (before discounts)</span><span>${(price.baseWeekly + price.addOnWeekly).toFixed(2)}</span></li>
+                  <li className="flex justify-between"><span>School discount</span><span>- ${price.schoolDiscountWeekly.toFixed(2)}</span></li>
+                  <li className="flex justify-between"><span>Prepay discount</span><span>- ${price.prepayDiscountWeekly.toFixed(2)}</span></li>
+                </ul>
+                <div className="mt-3 pt-3 border-t flex justify-between text-base font-bold text-rose-700">
+                  <span>Final weekly</span>
+                  <span>${price.finalWeekly.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="bg-white border rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Period Total</h3>
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Weeks in period</span>
+                  <span>{price.periodWeeks}</span>
+                </div>
+                <div className="mt-3 pt-3 border-t flex justify-between text-xl font-bold text-rose-700">
+                  <span>Total</span>
+                  <span>${price.totalForPeriod.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -300,28 +456,68 @@ function App() {
             </div>
           </section>
 
-          {/* Payment Information (temporarily hidden) */}
-          {false && (
-            <section className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center mb-6">
-                <DollarSign className="w-6 h-6 text-rose-600 mr-3" />
-                <h2 className="text-2xl font-bold text-rose-700">Payment Information</h2>
-              </div>
-              
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Zelle Payment Details</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
-                    <span className="text-gray-700 font-medium">Zelle Number:</span>
-                    <span className="text-xl font-bold text-rose-700">718-683-1750</span>
+          {/* Payment Information (Zelle only) */}
+          <section className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-6">
+              <DollarSign className="w-6 h-6 text-rose-600 mr-3" />
+              <h2 className="text-2xl font-bold text-rose-700">Payment via Zelle</h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600">Send to (Zelle email)</div>
+                    <div className="text-lg font-bold text-rose-700">payments@exceedlearningcenterny.com</div>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
-                    <strong>Instructions:</strong> Connect to Zelle account of Olga. If any verification is requested during the transfer, please message Olga directly for assistance.
-                  </p>
+                  <button type="button" onClick={() => handleCopy('payments@exceedlearningcenterny.com')} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600">Amount (USD)</div>
+                    <div className="text-lg font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</div>
+                  </div>
+                  <button type="button" onClick={() => handleCopy(price.totalForPeriod.toFixed(2))} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600">Suggested memo</div>
+                    <div className="text-sm font-medium text-gray-900 truncate">Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</div>
+                  </div>
+                  <button type="button" onClick={() => handleCopy(`Afterschool - ${formData.childName || 'Child Name'} - ${formData.parentName || 'Parent Name'}`)} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                </div>
+                <p className="text-xs text-gray-600">Please include the memo so we can match your payment quickly.</p>
+
+                {/* QR code with payment payload */}
+                <div className="mt-2">
+                  <div className="text-sm text-gray-600 mb-2">Scan to copy payment details</div>
+                  <div className="flex items-center gap-4">
+                    <QRCodeCanvas value={qrPayload} size={144} includeMargin level="M" ref={qrRef as any} />
+                    <button type="button" onClick={downloadQrPng} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Download QR</button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1">QR encodes: recipient email, amount, currency, and memo.</p>
                 </div>
               </div>
-            </section>
-          )}
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="zellePayerName" className="block text-sm font-medium text-gray-700 mb-2">Zelle account name (payer)</label>
+                  <input id="zellePayerName" name="zellePayerName" value={formData.zellePayerName} onChange={handleInputChange} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none" placeholder="Name shown on Zelle" />
+                </div>
+                <div>
+                  <label htmlFor="zelleConfirmation" className="block text-sm font-medium text-gray-700 mb-2">Zelle confirmation number (optional)</label>
+                  <input id="zelleConfirmation" name="zelleConfirmation" value={formData.zelleConfirmation} onChange={handleInputChange} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none" placeholder="e.g., ABC12345" />
+                </div>
+                <div>
+                  <label htmlFor="paymentNotes" className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+                  <textarea id="paymentNotes" name="paymentNotes" value={formData.paymentNotes} onChange={handleInputChange} rows={3} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none resize-vertical" placeholder="Any payment-related notes" />
+                </div>
+                <p className="text-xs text-gray-600">Zelle is processed through your bank app. After sending, please submit this form.</p>
+              </div>
+            </div>
+          </section>
 
           {/* Terms and Conditions */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -338,7 +534,7 @@ function App() {
                 </li>
                 <li className="flex items-start">
                   <span className="w-2 h-2 bg-rose-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                  <span>Monthly payments must be completed by the 15th of every month to avoid late charges.</span>
+                  <span>Monthly payments must be completed by the 5th of every month to avoid late charges.</span>
                 </li>
                 <li className="flex items-start">
                   <span className="w-2 h-2 bg-rose-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
