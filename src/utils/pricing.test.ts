@@ -20,16 +20,15 @@ describe('pricing engine', () => {
     expect(price({ daysPerWeek: 5 }).finalWeekly).toBe(375);
   });
 
-  it('applies time add-ons per day', () => {
-    // 3 days, 3-6 => +$30/day => +$90 weekly
+  it('time blocks are optional and do not change price', () => {
+    // 3 days, any time block => no add-ons
     const r1 = price({ daysPerWeek: 3, timeBlock: '3-6' });
-    expect(r1.addOnWeekly).toBe(90);
-    expect(r1.finalWeekly).toBe(225 + 90);
+    expect(r1.addOnWeekly).toBe(0);
+    expect(r1.finalWeekly).toBe(225);
 
-    // 5 days, 3-7 => +$50/day => +$250 weekly
     const r2 = price({ daysPerWeek: 5, timeBlock: '3-7' });
-    expect(r2.addOnWeekly).toBe(250);
-    expect(r2.finalWeekly).toBe(375 + 250);
+    expect(r2.addOnWeekly).toBe(0);
+    expect(r2.finalWeekly).toBe(375);
   });
 
   it('applies Searingtown 40% discount on (base + add-ons)', () => {
@@ -40,15 +39,15 @@ describe('pricing engine', () => {
   });
 
   it('applies prepay weekly discounts after school discount', () => {
-    // Example: 3 days, 3-6, Searingtown, 3 months
-    // Base 225 + add-on 90 = 315; 40% of 315 = 126; subtotal after school = 189
-    // 3-month discount = $25/week (eligible since 3-5 days)
+    // Example: 3 days, 3-6 (no add-ons), Searingtown, 3 months
+    // Base 225; 40% of 225 = 90; subtotal after school = 135
+    // 3-month discount = $25/week (eligible since 3–5 days)
     const r = price({ daysPerWeek: 3, timeBlock: '3-6', school: 'Searingtown', frequency: '3months' });
-    expect(r.schoolDiscountWeekly).toBeCloseTo(126, 2);
+    expect(r.schoolDiscountWeekly).toBeCloseTo(90, 2);
     expect(r.prepayDiscountWeekly).toBe(25);
-    expect(r.finalWeekly).toBeCloseTo(189 - 25, 2);
+    expect(r.finalWeekly).toBeCloseTo(110, 2);
     expect(r.periodWeeks).toBe(12);
-    expect(r.totalForPeriod).toBeCloseTo((189 - 25) * 12, 2);
+    expect(r.totalForPeriod).toBeCloseTo(110 * 12, 2);
   });
 
   it('monthly discount $10/week applies regardless of days (1-5)', () => {

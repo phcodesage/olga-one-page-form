@@ -97,6 +97,8 @@ app.post('/api/send-email', async (req, res) => {
       `Schedule: ${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}`,
       `Base weekly: $${pricing?.baseWeekly?.toFixed?.(2)}`,
       `Add-ons weekly: $${pricing?.addOnWeekly?.toFixed?.(2)}`,
+      `Abacus weekly: $${pricing?.abacusWeekly?.toFixed?.(2)}`,
+      `Registration fee (one-time): $${pricing?.registrationFee?.toFixed?.(2)}`,
       `School discount: -$${pricing?.schoolDiscountWeekly?.toFixed?.(2)}`,
       `Prepay discount: -$${pricing?.prepayDiscountWeekly?.toFixed?.(2)}`,
       `Final weekly: $${pricing?.finalWeekly?.toFixed?.(2)}`,
@@ -150,13 +152,15 @@ app.post('/api/send-email', async (req, res) => {
         `• ${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}`,
         '',
         'Price breakdown (per week):',
-        `• Base: $${pricing?.baseWeekly?.toFixed?.(2)}`,
-        `• Add-ons: $${pricing?.addOnWeekly?.toFixed?.(2)}`,
+        `• Base weekly: $${pricing?.baseWeekly?.toFixed?.(2)}`,
+        `• Add-ons weekly: $${pricing?.addOnWeekly?.toFixed?.(2)}`,
+        `• Abacus weekly: $${pricing?.abacusWeekly?.toFixed?.(2)}`,
         `• School discount: -$${pricing?.schoolDiscountWeekly?.toFixed?.(2)}`,
         `• Prepay discount: -$${pricing?.prepayDiscountWeekly?.toFixed?.(2)}`,
         `• Final weekly: $${pricing?.finalWeekly?.toFixed?.(2)}`,
         '',
         `Weeks in billing period: ${pricing?.periodWeeks}`,
+        `One-time registration fee: $${pricing?.registrationFee?.toFixed?.(2)}`,
         `Total due this period: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
         '',
         'Payment via Zelle:',
@@ -193,11 +197,13 @@ app.post('/api/send-email', async (req, res) => {
             <ul style="margin:0; padding-left:18px; line-height:1.6">
               <li>Base weekly: <strong>$${pricing?.baseWeekly?.toFixed?.(2)}</strong></li>
               <li>Add-ons weekly: <strong>$${pricing?.addOnWeekly?.toFixed?.(2)}</strong></li>
+              <li>Abacus weekly: <strong>$${pricing?.abacusWeekly?.toFixed?.(2)}</strong></li>
               <li>School discount: <strong>-$${pricing?.schoolDiscountWeekly?.toFixed?.(2)}</strong></li>
               <li>Prepay discount: <strong>-$${pricing?.prepayDiscountWeekly?.toFixed?.(2)}</strong></li>
               <li>Final weekly: <strong>$${pricing?.finalWeekly?.toFixed?.(2)}</strong></li>
             </ul>
             <p style="margin:8px 0 0">Weeks in period: <strong>${pricing?.periodWeeks}</strong></p>
+            <p style="margin:4px 0 0">One-time registration fee: <strong>$${pricing?.registrationFee?.toFixed?.(2)}</strong></p>
             <p style="margin:4px 0 0">Total due this period: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></p>
           </div>
 

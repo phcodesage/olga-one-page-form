@@ -7,22 +7,29 @@ describe('App form', () => {
   const user = userEvent.setup();
   const originalAlert = window.alert;
   const originalConsoleLog = console.log;
+  let fetchSpy: ReturnType<typeof vi.spyOn> | undefined;
 
   beforeEach(() => {
     window.alert = vi.fn();
     console.log = vi.fn();
+    // Mock canvas for qrcode.react
+    // @ts-expect-error jsdom doesn't implement getContext
+    HTMLCanvasElement.prototype.getContext = vi.fn();
+    // Force network failure so component shows alert in catch block
+    fetchSpy = vi.spyOn(globalThis, 'fetch' as any).mockRejectedValue(new Error('Network error'));
   });
 
   afterEach(() => {
     window.alert = originalAlert;   
     console.log = originalConsoleLog;
+    fetchSpy?.mockRestore();
   });
 
   it('fills out and submits the form with country codes', async () => {
     render(<App />);
 
     // Select a schedule option (first radio)
-    const radios = screen.getAllByRole('radio', { name: /4–5 PM/i });
+    const radios = screen.getAllByRole('radio', { name: /4–6 PM/i });
     await user.click(radios[0]);
 
     // Fill child and parent info
@@ -45,8 +52,8 @@ describe('App form', () => {
     await user.type(screen.getByLabelText('Allergies or Medical Conditions'), 'None');
     await user.type(screen.getByLabelText('Special Instructions'), 'N/A');
 
-    // Agree to terms (checkbox inside label)
-    const termsCheckbox = screen.getByRole('checkbox');
+    // Agree to terms (checkbox inside label) — target by label text to avoid ambiguity
+    const termsCheckbox = screen.getByLabelText(/I have read and agree to the terms/i);
     await user.click(termsCheckbox);
 
     // Submit

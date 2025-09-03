@@ -28,6 +28,9 @@ function App() {
   const [timeBlock, setTimeBlock] = useState<TimeBlock>('4-6');
   const [school, setSchool] = useState<School>('Searingtown');
   const [frequency, setFrequency] = useState<BillingFrequency>('monthly');
+  const [extensionsEnabled, setExtensionsEnabled] = useState<boolean>(false);
+  const [abacusEnabled, setAbacusEnabled] = useState<boolean>(false);
+  const [isCarrington, setIsCarrington] = useState<boolean>(false);
 
   // Submission state
   const [submitted, setSubmitted] = useState(false);
@@ -48,13 +51,13 @@ function App() {
     e.preventDefault();
     if (isSubmitting || submitted) return;
     setIsSubmitting(true);
-    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency });
+    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington });
     const payload = {
       selectedOption,
       ...formData,
       phoneFull: `${formData.phoneCountry} ${formData.phone}`,
       emergencyPhoneFull: `${formData.emergencyPhoneCountry} ${formData.emergencyPhone}`,
-      pricingInput: { daysPerWeek, timeBlock, school, frequency },
+      pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington },
       pricing,
       paymentMethod: 'Zelle',
     } as const;
@@ -68,7 +71,7 @@ function App() {
         body: JSON.stringify({
           form: payload,
           pricing,
-          pricingInput: { daysPerWeek, timeBlock, school, frequency },
+          pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington },
           zelle: {
             zellePayerName: formData.zellePayerName,
             zelleConfirmation: formData.zelleConfirmation,
@@ -99,31 +102,31 @@ function App() {
   const pricingOptions = [
     {
       id: '1day',
-      title: '4–5 PM, 1 day a week',
+      title: '4–6 PM, 1 day a week',
       description: 'Great for trying us out',
       price: '$75/month'
     },
     {
       id: '2days',
-      title: '4–5 PM, 2 days a week',
+      title: '4–6 PM, 2 days a week',
       description: 'Perfect for light afterschool support',
       price: '$150/month'
     },
     {
       id: '3days',
-      title: '4–5 PM, 3 days a week',
+      title: '4–6 PM, 3 days a week',
       description: 'Balanced schedule for consistent learning',
       price: '$225/month'
     },
     {
       id: '4days',
-      title: '4–5 PM, 4 days a week',
+      title: '4–6 PM, 4 days a week',
       description: 'More support throughout the week',
       price: '$300/month'
     },
     {
       id: '5days',
-      title: '4–5 PM, 5 days a week',
+      title: '4–6 PM, 5 days a week',
       description: 'Full-week coverage',
       price: '$375/month',
       popular: true
@@ -140,8 +143,8 @@ function App() {
   };
 
   const price = useMemo(() =>
-    calculatePrice({ daysPerWeek, timeBlock, school, frequency })
-  , [daysPerWeek, timeBlock, school, frequency]);
+    calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington })
+  , [daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington]);
 
   const qrRef = useRef<HTMLCanvasElement | null>(null);
   const qrPayload = useMemo(() => {
@@ -299,25 +302,39 @@ function App() {
 
               {/* Time block */}
               <div>
-                <span className="block text-sm font-medium text-gray-700 mb-2">Time Block</span>
-                <div className="grid gap-2">
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="timeBlock" value="4-6" checked={timeBlock === '4-6'} onChange={() => setTimeBlock('4-6')} />
-                    <span>4–6 PM (base)</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="timeBlock" value="3-6" checked={timeBlock === '3-6'} onChange={() => setTimeBlock('3-6')} />
-                    <span>3–6 PM (+$30/day)</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="timeBlock" value="4-7" checked={timeBlock === '4-7'} onChange={() => setTimeBlock('4-7')} />
-                    <span>4–7 PM (+$30/day)</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="timeBlock" value="3-7" checked={timeBlock === '3-7'} onChange={() => setTimeBlock('3-7')} />
-                    <span>3–7 PM (+$50/day)</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="block text-sm font-medium text-gray-700">Extension Hours (optional)</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-100 text-rose-700 border border-rose-200">Optional</span>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={extensionsEnabled} onChange={(e) => setExtensionsEnabled(e.target.checked)} />
+                    Enable extension hours
                   </label>
                 </div>
+                {extensionsEnabled && (
+                  <>
+                    <p className="text-xs text-gray-600 mb-2">Choose your preferred extension time.</p>
+                    <div className="grid gap-2">
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="timeBlock" value="4-6" checked={timeBlock === '4-6'} onChange={() => setTimeBlock('4-6')} />
+                        <span>4–6 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">base</span></span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="timeBlock" value="3-6" checked={timeBlock === '3-6'} onChange={() => setTimeBlock('3-6')} />
+                        <span>3–6 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$30/day</span></span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="timeBlock" value="4-7" checked={timeBlock === '4-7'} onChange={() => setTimeBlock('4-7')} />
+                        <span>4–7 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$30/day</span></span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="timeBlock" value="3-7" checked={timeBlock === '3-7'} onChange={() => setTimeBlock('3-7')} />
+                        <span>3–7 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$50/day</span></span>
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* School selector */}
@@ -328,9 +345,31 @@ function App() {
                   onChange={(e) => setSchool(e.target.value as School)}
                   className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
                 >
-                  <option value="Searingtown">Searingtown (40% off)</option>
+                  <option value="Searingtown">Searingtown (40% off for 2+ days)</option>
                   <option value="Other">Other</option>
                 </select>
+              </div>
+
+              {/* Abacus add-on */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="block text-sm font-medium text-gray-700">Abacus classes</span>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={abacusEnabled} onChange={(e) => setAbacusEnabled(e.target.checked)} />
+                    <span>Add Abacus <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$350/mo</span> <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">+$90 one-time</span></span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-600 mb-2">No 40% school or prepay discounts apply to Abacus. Carrington’s students get the $90 registration fee waived.</p>
+                <label className={`flex items-center gap-2 text-sm ${abacusEnabled ? 'text-gray-700' : 'text-gray-400'}`}>
+                  <input type="checkbox" checked={isCarrington} onChange={(e) => setIsCarrington(e.target.checked)} disabled={!abacusEnabled} aria-disabled={!abacusEnabled} />
+                  Carrington’s student (waives $90 registration)
+                </label>
+                {!abacusEnabled && (
+                  <p className="text-[11px] text-gray-500 mt-1">Enable Abacus to apply the Carrington waiver.</p>
+                )}
+                {abacusEnabled && isCarrington && (
+                  <p className="text-[11px] text-green-700 mt-1">$90 registration fee waived.</p>
+                )}
               </div>
 
               {/* Billing frequency */}
@@ -363,6 +402,9 @@ function App() {
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li className="flex justify-between"><span>Base</span><span>${price.baseWeekly.toFixed(2)}</span></li>
                   <li className="flex justify-between"><span>Time add-ons</span><span>${price.addOnWeekly.toFixed(2)}</span></li>
+                  {price.abacusWeekly > 0 && (
+                    <li className="flex justify-between"><span>Abacus (no discounts)</span><span>${price.abacusWeekly.toFixed(2)}</span></li>
+                  )}
                   <li className="flex justify-between font-medium"><span>Subtotal (before discounts)</span><span>${(price.baseWeekly + price.addOnWeekly).toFixed(2)}</span></li>
                   <li className="flex justify-between"><span>School discount</span><span>- ${price.schoolDiscountWeekly.toFixed(2)}</span></li>
                   <li className="flex justify-between"><span>Prepay discount</span><span>- ${price.prepayDiscountWeekly.toFixed(2)}</span></li>
@@ -379,6 +421,12 @@ function App() {
                   <span>Weeks in period</span>
                   <span>{price.periodWeeks}</span>
                 </div>
+                {price.registrationFee > 0 && (
+                  <div className="mt-2 flex justify-between text-sm text-gray-700">
+                    <span>One-time registration fee</span>
+                    <span>${price.registrationFee.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="mt-3 pt-3 border-t flex justify-between text-xl font-bold text-rose-700">
                   <span>Total</span>
                   <span>${price.totalForPeriod.toFixed(2)}</span>

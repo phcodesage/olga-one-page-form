@@ -14,15 +14,22 @@ export interface PricingInput {
   timeBlock: TimeBlock;
   school: School;
   frequency: BillingFrequency;
+  extensionsEnabled?: boolean;
+  // Abacus add-on
+  abacusEnabled?: boolean;
+  // Carrington waiver for the abacus registration fee
+  isCarrington?: boolean;
 }
 
 export interface PricingBreakdown {
   baseWeekly: number;
   addOnWeekly: number;
+  abacusWeekly: number;
   schoolDiscountWeekly: number;
   prepayDiscountWeekly: number;
   finalWeekly: number;
   periodWeeks: number;
+  registrationFee: number;
   totalForPeriod: number;
 }
 
@@ -68,7 +75,7 @@ function prepayWeeklyDiscount(
     case '6months':
       return 40;
     case 'year':
-      return 50;
+      return 40; // 10 months equivalent at 4 weeks/month
     default:
       return 0;
   }
@@ -76,29 +83,37 @@ function prepayWeeklyDiscount(
 
 export function calculatePrice(input: PricingInput): PricingBreakdown {
   const baseWeekly = baseWeeklyMap[input.daysPerWeek];
-  const addOnWeekly = addOnPerDay(input.timeBlock) * input.daysPerWeek;
+  const addOnWeekly = (input.extensionsEnabled ? addOnPerDay(input.timeBlock) : 0) * input.daysPerWeek;
+  // Abacus: $350/month => $87.50/week equivalent
+  const abacusWeekly = input.abacusEnabled ? +(350 / 4).toFixed(2) : 0;
 
-  // Apply Searingtown discount (40%) to base + add-ons
+  // Apply Searingtown discount (40%) to base + add-ons, only if enrolled 2+ days/week
+  // School discount applies only to core program (base + time add-ons), not abacus
   const subtotal = baseWeekly + addOnWeekly;
-  const schoolDiscountWeekly = input.school === 'Searingtown' ? +(subtotal * 0.4).toFixed(2) : 0;
+  const eligibleForSchoolDiscount = input.school === 'Searingtown' && input.daysPerWeek >= 2;
+  const schoolDiscountWeekly = eligibleForSchoolDiscount ? +(subtotal * 0.4).toFixed(2) : 0;
 
   // Prepay weekly discount
   const prepayDiscountWeekly = prepayWeeklyDiscount(input.frequency, input.daysPerWeek);
 
-  let finalWeekly = subtotal - schoolDiscountWeekly - prepayDiscountWeekly;
+  // Final weekly = discounted core program + abacus weekly
+  let finalWeekly = (subtotal - schoolDiscountWeekly - prepayDiscountWeekly) + abacusWeekly;
   if (finalWeekly < 0) finalWeekly = 0;
   finalWeekly = +finalWeekly.toFixed(2);
 
   const periodWeeks = periodWeeksFor(input.frequency);
-  const totalForPeriod = +(finalWeekly * periodWeeks).toFixed(2);
+  const registrationFee = input.abacusEnabled && !input.isCarrington ? 90 : 0;
+  const totalForPeriod = +((finalWeekly * periodWeeks) + registrationFee).toFixed(2);
 
   return {
     baseWeekly,
     addOnWeekly,
+    abacusWeekly,
     schoolDiscountWeekly,
     prepayDiscountWeekly,
     finalWeekly,
     periodWeeks,
+    registrationFee,
     totalForPeriod,
   };
 }
