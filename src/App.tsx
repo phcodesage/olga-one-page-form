@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Calendar, DollarSign, FileText } from 'lucide-react';
+import { CheckCircle2, Calendar, DollarSign, FileText, Loader2 } from 'lucide-react';
 import { calculatePrice, type TimeBlock, type School, type BillingFrequency } from './utils/pricing';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -27,6 +27,11 @@ function App() {
   const [school, setSchool] = useState<School>('Searingtown');
   const [frequency, setFrequency] = useState<BillingFrequency>('monthly');
 
+  // Submission state
+  const [submitted, setSubmitted] = useState(false);
+  const [receipt, setReceipt] = useState<{ child?: string; parent?: string; email?: string; total?: number } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -37,11 +42,12 @@ function App() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
+    if (isSubmitting || submitted) return;
+    setIsSubmitting(true);
     const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency });
-    console.log('Form submitted:', {
+    const payload = {
       selectedOption,
       ...formData,
       phoneFull: `${formData.phoneCountry} ${formData.phone}`,
@@ -49,8 +55,43 @@ function App() {
       pricingInput: { daysPerWeek, timeBlock, school, frequency },
       pricing,
       paymentMethod: 'Zelle',
-    });
-    alert('Thank you for your registration! We will contact you shortly.');
+    } as const;
+
+    console.log('Form submitted:', payload);
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          form: payload,
+          pricing,
+          pricingInput: { daysPerWeek, timeBlock, school, frequency },
+          zelle: {
+            zellePayerName: formData.zellePayerName,
+            zelleConfirmation: formData.zelleConfirmation,
+            paymentNotes: formData.paymentNotes,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || `Email API error: ${res.status}`);
+      }
+      // Show thank-you screen with basic receipt details
+      setReceipt({
+        child: formData.childName,
+        parent: formData.parentName,
+        email: formData.email,
+        total: pricing.totalForPeriod,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Failed to send email', err);
+      alert('Submitted locally, but failed to send confirmation email. Please try again or contact us.');
+      setIsSubmitting(false);
+    }
   };
 
   const pricingOptions = [
@@ -128,9 +169,33 @@ function App() {
           <p className="text-slate-300 text-lg">Quality care and learning for your child</p>
         </div>
       </header>
-
+      {/* Thank You Screen */}
+      {submitted ? (
+        <main className="max-w-3xl mx-auto px-4 py-16">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="mx-auto mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
+              <CheckCircle2 className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className="text-3xl font-bold text-rose-700 mb-3">Thank you for registering!</h2>
+            <p className="text-gray-700 mb-6">We've received your submission and sent confirmation emails.</p>
+            {receipt && (
+              <div className="text-left inline-block bg-orange-50 border border-orange-200 rounded-lg p-6 w-full max-w-xl">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Your Receipt</h3>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  <li><span className="font-medium">Child:</span> {receipt.child || '-'}</li>
+                  <li><span className="font-medium">Parent:</span> {receipt.parent || '-'}</li>
+                  <li><span className="font-medium">Email:</span> {receipt.email || '-'}</li>
+                  <li className="pt-2 border-t"><span className="font-medium">Total due this period:</span> ${receipt.total?.toFixed(2)}</li>
+                </ul>
+                <p className="text-xs text-gray-600 mt-3">Please send your Zelle payment to <span className="font-semibold">payments@exceedlearningcenterny.com</span> and include the memo: Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</p>
+              </div>
+            )}
+          </div>
+        </main>
+      ) : (
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8 relative">
+          <fieldset disabled={isSubmitting || submitted} className={isSubmitting ? 'opacity-60 pointer-events-none' : ''}>
           {/* Special Offer Notice */}
           <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
             <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full mb-4">
@@ -262,12 +327,18 @@ function App() {
                   onChange={(e) => setFrequency(e.target.value as BillingFrequency)}
                   className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
                 >
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="3months">3 Months</option>
-                  <option value="6months">6 Months</option>
-                  <option value="year">Full Year</option>
+                  <option value="weekly">Weekly (no prepay discount)</option>
+                  <option value="monthly">Whole 1 Month — $10 off per week</option>
+                  <option value="3months">3 Months — $25 off per week (3–5 days)</option>
+                  <option value="6months">6 Months — $40 off per week (3–5 days)</option>
+                  <option value="year">Full School Year (Sep–Jun) — $50 off per week (3–5 days)</option>
                 </select>
+                <p className="mt-2 text-xs text-gray-600">
+                  Prepay discount this selection: <span className="font-semibold text-rose-700">${price.prepayDiscountWeekly.toFixed(2)}/week</span>.
+                  {daysPerWeek < 3 && (frequency === '3months' || frequency === '6months' || frequency === 'year') && (
+                    <span className="ml-1">Note: 3/6/Year discounts apply only for 3–5 days per week.</span>
+                  )}
+                </p>
               </div>
             </div>
 
@@ -558,20 +629,38 @@ function App() {
           </section>
 
           {/* Submit Button */}
-          <div className="text-center">
+          <div className="flex flex-col items-center text-center">
             <button
               type="submit"
-              className="inline-flex items-center px-12 py-4 bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-700 hover:to-orange-600 text-white font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-rose-300"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              className={`inline-flex items-center justify-center px-6 py-3 rounded-lg text-white font-semibold transition-colors ${isSubmitting ? 'bg-green-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
             >
-              <CheckCircle2 className="w-6 h-6 mr-3" />
-              Complete Registration
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-6 h-6 mr-3" />
+                  Complete Registration
+                </>
+              )}
             </button>
             <p className="text-sm text-gray-600 mt-4">
               By submitting this form, you're enrolling your child in our afterschool program.
             </p>
           </div>
+          </fieldset>
+          {isSubmitting && (
+            <div className="absolute inset-0 rounded-xl" aria-hidden>
+              {/* Transparent overlay to block clicks even if CSS classes fail somewhere */}
+            </div>
+          )}
         </form>
       </main>
+      )}
 
       {/* Footer */}
       <footer className="bg-slate-800 text-white py-8 px-4 mt-16">
