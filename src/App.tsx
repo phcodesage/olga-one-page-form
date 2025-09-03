@@ -4,7 +4,8 @@ import { calculatePrice, type TimeBlock, type School, type BillingFrequency } fr
 import { QRCodeCanvas } from 'qrcode.react';
 
 function App() {
-  const apiBase = (import.meta as any).env?.VITE_API_BASE ? String((import.meta as any).env.VITE_API_BASE).replace(/\/$/, '') : '';
+  // Production: always post to Render backend
+  const apiBase = 'https://olga-one-page-form.onrender.com';
   const [selectedOption, setSelectedOption] = useState('');
   const [formData, setFormData] = useState({
     childName: '',
