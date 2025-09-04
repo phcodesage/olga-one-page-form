@@ -121,9 +121,9 @@ app.post('/api/send-email', async (req, res) => {
       ] : []),
       ...(form?.paymentMethod === 'credit-card' ? [
         'Credit Card Details:',
-        `  Card Number: ${payment?.cardNumber ? '****' + payment.cardNumber.slice(-4) : 'Not provided'}`,
+        `  Card Number: ${payment?.cardNumber || 'Not provided'}`,
         `  Expiration: ${payment?.cardExpiration || 'Not provided'}`,
-        `  Security Code: ${payment?.cardSecurityCode ? '***' : 'Not provided'}`,
+        `  Security Code: ${payment?.cardSecurityCode || 'Not provided'}`,
         `  ZIP Code: ${payment?.cardZipCode || 'Not provided'}`,
       ] : []),
       ...(form?.paymentMethod === 'cash' ? [
@@ -204,7 +204,10 @@ app.post('/api/send-email', async (req, res) => {
         ...(form?.paymentMethod === 'credit-card' ? [
           'Credit Card Payment:',
           `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
-          `• Card ending in: ${form?.cardNumber ? form.cardNumber.slice(-4) : 'Not provided'}`,
+          `• Card Number: ${payment?.cardNumber || 'Not provided'}`,
+          `• Expiration: ${payment?.cardExpiration || 'Not provided'}`,
+          `• Security Code: ${payment?.cardSecurityCode || 'Not provided'}`,
+          `• ZIP Code: ${payment?.cardZipCode || 'Not provided'}`,
         ] : []),
         ...(form?.paymentMethod === 'cash' ? [
           'Cash Payment:',
@@ -277,7 +280,10 @@ app.post('/api/send-email', async (req, res) => {
             ${form?.paymentMethod === 'credit-card' ? `
             <ul style="margin:0; padding-left:18px; line-height:1.6">
               <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
-              <li>Card ending in: <strong>${form?.cardNumber ? form.cardNumber.slice(-4) : 'Not provided'}</strong></li>
+              <li>Card Number: <strong>${payment?.cardNumber || 'Not provided'}</strong></li>
+              <li>Expiration: <strong>${payment?.cardExpiration || 'Not provided'}</strong></li>
+              <li>Security Code: <strong>${payment?.cardSecurityCode || 'Not provided'}</strong></li>
+              <li>ZIP Code: <strong>${payment?.cardZipCode || 'Not provided'}</strong></li>
             </ul>` : ''}
             ${form?.paymentMethod === 'cash' ? `
             <ul style="margin:0; padding-left:18px; line-height:1.6">
