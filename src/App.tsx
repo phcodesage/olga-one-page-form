@@ -9,7 +9,10 @@ function App() {
   const [selectedOption, setSelectedOption] = useState('');
   const [formData, setFormData] = useState({
     childName: '',
+    childDateOfBirth: '',
+    childGrade: '',
     parentName: '',
+    parentAddress: '',
     email: '',
     phoneCountry: '+1',
     phone: '',
@@ -18,8 +21,17 @@ function App() {
     emergencyPhone: '',
     allergies: '',
     specialInstructions: '',
+    // Payment fields
+    paymentMethod: 'zelle',
+    // Zelle fields
     zellePayerName: '',
     zelleConfirmation: '',
+    // Credit card fields
+    cardNumber: '',
+    cardExpiration: '',
+    cardSecurityCode: '',
+    cardZipCode: '',
+    // Other payment notes
     paymentNotes: '',
   });
 
@@ -59,7 +71,7 @@ function App() {
       emergencyPhoneFull: `${formData.emergencyPhoneCountry} ${formData.emergencyPhone}`,
       pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington },
       pricing,
-      paymentMethod: 'Zelle',
+      paymentMethod: formData.paymentMethod,
     } as const;
 
     console.log('Form submitted:', payload);
@@ -455,6 +467,47 @@ function App() {
               </div>
               
               <div>
+                <label htmlFor="childDateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+                  Child's Date of Birth *
+                </label>
+                <input
+                  type="date"
+                  id="childDateOfBirth"
+                  name="childDateOfBirth"
+                  value={formData.childDateOfBirth}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="childGrade" className="block text-sm font-medium text-gray-700 mb-2">
+                  Child's Grade *
+                </label>
+                <select
+                  id="childGrade"
+                  name="childGrade"
+                  value={formData.childGrade}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                >
+                  <option value="">Select grade</option>
+                  <option value="Pre-K">Pre-K</option>
+                  <option value="Kindergarten">Kindergarten</option>
+                  <option value="1st Grade">1st Grade</option>
+                  <option value="2nd Grade">2nd Grade</option>
+                  <option value="3rd Grade">3rd Grade</option>
+                  <option value="4th Grade">4th Grade</option>
+                  <option value="5th Grade">5th Grade</option>
+                  <option value="6th Grade">6th Grade</option>
+                  <option value="7th Grade">7th Grade</option>
+                  <option value="8th Grade">8th Grade</option>
+                </select>
+              </div>
+              
+              <div>
                 <label htmlFor="parentName" className="block text-sm font-medium text-gray-700 mb-2">
                   Parent/Guardian Name *
                 </label>
@@ -465,6 +518,22 @@ function App() {
                   value={formData.parentName}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label htmlFor="parentAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                  Parent Address *
+                </label>
+                <input
+                  type="text"
+                  id="parentAddress"
+                  name="parentAddress"
+                  value={formData.parentAddress}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  placeholder="Street address, city, state, ZIP code"
                   required
                 />
               </div>
@@ -589,66 +658,242 @@ function App() {
             </div>
           </section>
 
-          {/* Payment Information (Zelle only) */}
+          {/* Payment Information */}
           <section className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center mb-6">
               <DollarSign className="w-6 h-6 text-rose-600 mr-3" />
-              <h2 className="text-2xl font-bold text-rose-700">Payment via Zelle</h2>
+              <h2 className="text-2xl font-bold text-rose-700">Payment Information</h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-gray-600">Send to (Zelle email)</div>
-                    <div className="text-lg font-bold text-rose-700">payments@exceedlearningcenterny.com</div>
+            {/* Payment Method Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Payment Method *</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <label className="relative block cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="zelle"
+                    checked={formData.paymentMethod === 'zelle'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    required
+                  />
+                  <div className={`border-2 rounded-lg p-3 text-center transition-all duration-200 ${
+                    formData.paymentMethod === 'zelle'
+                      ? 'border-rose-600 bg-rose-50 shadow-md'
+                      : 'border-orange-300 hover:border-orange-400 hover:bg-orange-50'
+                  }`}>
+                    <div className="text-sm font-medium text-gray-900">Zelle</div>
                   </div>
-                  <button type="button" onClick={() => handleCopy('payments@exceedlearningcenterny.com')} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                </label>
+                <label className="relative block cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="credit-card"
+                    checked={formData.paymentMethod === 'credit-card'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    required
+                  />
+                  <div className={`border-2 rounded-lg p-3 text-center transition-all duration-200 ${
+                    formData.paymentMethod === 'credit-card'
+                      ? 'border-rose-600 bg-rose-50 shadow-md'
+                      : 'border-orange-300 hover:border-orange-400 hover:bg-orange-50'
+                  }`}>
+                    <div className="text-sm font-medium text-gray-900">Credit Card</div>
+                  </div>
+                </label>
+                <label className="relative block cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="cash"
+                    checked={formData.paymentMethod === 'cash'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    required
+                  />
+                  <div className={`border-2 rounded-lg p-3 text-center transition-all duration-200 ${
+                    formData.paymentMethod === 'cash'
+                      ? 'border-rose-600 bg-rose-50 shadow-md'
+                      : 'border-orange-300 hover:border-orange-400 hover:bg-orange-50'
+                  }`}>
+                    <div className="text-sm font-medium text-gray-900">Cash</div>
+                  </div>
+                </label>
+                <label className="relative block cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="check"
+                    checked={formData.paymentMethod === 'check'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    required
+                  />
+                  <div className={`border-2 rounded-lg p-3 text-center transition-all duration-200 ${
+                    formData.paymentMethod === 'check'
+                      ? 'border-rose-600 bg-rose-50 shadow-md'
+                      : 'border-orange-300 hover:border-orange-400 hover:bg-orange-50'
+                  }`}>
+                    <div className="text-sm font-medium text-gray-900">Check</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Zelle Payment Details */}
+            {formData.paymentMethod === 'zelle' && (
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-gray-600">Send to (Zelle email)</div>
+                      <div className="text-lg font-bold text-rose-700">payments@exceedlearningcenterny.com</div>
+                    </div>
+                    <button type="button" onClick={() => handleCopy('payments@exceedlearningcenterny.com')} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-gray-600">Amount (USD)</div>
+                      <div className="text-lg font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</div>
+                    </div>
+                    <button type="button" onClick={() => handleCopy(price.totalForPeriod.toFixed(2))} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-gray-600">Suggested memo</div>
+                      <div className="text-sm font-medium text-gray-900 truncate">Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</div>
+                    </div>
+                    <button type="button" onClick={() => handleCopy(`Afterschool - ${formData.childName || 'Child Name'} - ${formData.parentName || 'Parent Name'}`)} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
+                  </div>
+                  <p className="text-xs text-gray-600">Please include the memo so we can match your payment quickly.</p>
+
+                  {/* QR code with payment payload */}
+                  <div className="mt-2">
+                    <div className="text-sm text-gray-600 mb-2">Scan to copy payment details</div>
+                    <div className="flex items-center gap-4">
+                      <QRCodeCanvas value={qrPayload} size={144} includeMargin level="M" ref={qrRef as any} />
+                      <button type="button" onClick={downloadQrPng} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Download QR</button>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1">QR encodes: recipient email, amount, currency, and memo.</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="space-y-4">
                   <div>
-                    <div className="text-sm text-gray-600">Amount (USD)</div>
-                    <div className="text-lg font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</div>
+                    <label htmlFor="zellePayerName" className="block text-sm font-medium text-gray-700 mb-2">Zelle account name (payer)</label>
+                    <input id="zellePayerName" name="zellePayerName" value={formData.zellePayerName} onChange={handleInputChange} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none" placeholder="Name shown on Zelle" />
                   </div>
-                  <button type="button" onClick={() => handleCopy(price.totalForPeriod.toFixed(2))} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
-                </div>
-
-                <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-gray-600">Suggested memo</div>
-                    <div className="text-sm font-medium text-gray-900 truncate">Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</div>
+                    <label htmlFor="zelleConfirmation" className="block text-sm font-medium text-gray-700 mb-2">Zelle confirmation number (optional)</label>
+                    <input id="zelleConfirmation" name="zelleConfirmation" value={formData.zelleConfirmation} onChange={handleInputChange} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none" placeholder="e.g., ABC12345" />
                   </div>
-                  <button type="button" onClick={() => handleCopy(`Afterschool - ${formData.childName || 'Child Name'} - ${formData.parentName || 'Parent Name'}`)} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Copy</button>
-                </div>
-                <p className="text-xs text-gray-600">Please include the memo so we can match your payment quickly.</p>
-
-                {/* QR code with payment payload */}
-                <div className="mt-2">
-                  <div className="text-sm text-gray-600 mb-2">Scan to copy payment details</div>
-                  <div className="flex items-center gap-4">
-                    <QRCodeCanvas value={qrPayload} size={144} includeMargin level="M" ref={qrRef as any} />
-                    <button type="button" onClick={downloadQrPng} className="px-3 py-2 text-sm bg-white border rounded hover:bg-gray-50">Download QR</button>
-                  </div>
-                  <p className="text-[11px] text-gray-500 mt-1">QR encodes: recipient email, amount, currency, and memo.</p>
+                  <p className="text-xs text-gray-600">Zelle is processed through your bank app. After sending, please submit this form.</p>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="zellePayerName" className="block text-sm font-medium text-gray-700 mb-2">Zelle account name (payer)</label>
-                  <input id="zellePayerName" name="zellePayerName" value={formData.zellePayerName} onChange={handleInputChange} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none" placeholder="Name shown on Zelle" />
+            {/* Credit Card Payment Details */}
+            {formData.paymentMethod === 'credit-card' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Credit Card Information</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-2">Card Number *</label>
+                    <input
+                      type="text"
+                      id="cardNumber"
+                      name="cardNumber"
+                      value={formData.cardNumber}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                      placeholder="1234 5678 9012 3456"
+                      required={formData.paymentMethod === 'credit-card'}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cardExpiration" className="block text-sm font-medium text-gray-700 mb-2">Expiration Date *</label>
+                    <input
+                      type="text"
+                      id="cardExpiration"
+                      name="cardExpiration"
+                      value={formData.cardExpiration}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                      placeholder="MM/YY"
+                      required={formData.paymentMethod === 'credit-card'}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cardSecurityCode" className="block text-sm font-medium text-gray-700 mb-2">Security Code *</label>
+                    <input
+                      type="text"
+                      id="cardSecurityCode"
+                      name="cardSecurityCode"
+                      value={formData.cardSecurityCode}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                      placeholder="123"
+                      required={formData.paymentMethod === 'credit-card'}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label htmlFor="cardZipCode" className="block text-sm font-medium text-gray-700 mb-2">ZIP Code *</label>
+                    <input
+                      type="text"
+                      id="cardZipCode"
+                      name="cardZipCode"
+                      value={formData.cardZipCode}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
+                      placeholder="12345"
+                      required={formData.paymentMethod === 'credit-card'}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor="zelleConfirmation" className="block text-sm font-medium text-gray-700 mb-2">Zelle confirmation number (optional)</label>
-                  <input id="zelleConfirmation" name="zelleConfirmation" value={formData.zelleConfirmation} onChange={handleInputChange} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none" placeholder="e.g., ABC12345" />
-                </div>
-                <div>
-                  <label htmlFor="paymentNotes" className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
-                  <textarea id="paymentNotes" name="paymentNotes" value={formData.paymentNotes} onChange={handleInputChange} rows={3} className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none resize-vertical" placeholder="Any payment-related notes" />
-                </div>
-                <p className="text-xs text-gray-600">Zelle is processed through your bank app. After sending, please submit this form.</p>
+                <p className="text-xs text-gray-600 mt-3">Your credit card information is secure and will be processed safely.</p>
               </div>
+            )}
+
+            {/* Cash Payment Details */}
+            {formData.paymentMethod === 'cash' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Cash Payment</h3>
+                <p className="text-gray-700 mb-2">Total amount due: <span className="font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</span></p>
+                <p className="text-sm text-gray-600">Please bring cash payment to the center. We will provide a receipt upon payment.</p>
+              </div>
+            )}
+
+            {/* Check Payment Details */}
+            {formData.paymentMethod === 'check' && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Check Payment</h3>
+                <p className="text-gray-700 mb-2">Total amount due: <span className="font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</span></p>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>Make check payable to: <span className="font-semibold">Exceed Learning Center</span></p>
+                  <p>Memo: Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</p>
+                  <p className="mt-2">Please mail or bring the check to our center.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Notes (for all methods) */}
+            <div className="mt-6">
+              <label htmlFor="paymentNotes" className="block text-sm font-medium text-gray-700 mb-2">Payment Notes (optional)</label>
+              <textarea
+                id="paymentNotes"
+                name="paymentNotes"
+                value={formData.paymentNotes}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none resize-vertical"
+                placeholder="Any additional payment-related notes or instructions"
+              />
             </div>
           </section>
 

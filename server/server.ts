@@ -87,7 +87,10 @@ app.post('/api/send-email', async (req, res) => {
 
     const lines = [
       `Child: ${form?.childName || ''}`,
+      `Child DOB: ${form?.childDateOfBirth || ''}`,
+      `Child Grade: ${form?.childGrade || ''}`,
       `Parent: ${form?.parentName || ''}`,
+      `Parent Address: ${form?.parentAddress || ''}`,
       `Email: ${form?.email || ''}`,
       `Phone: ${form?.phoneFull || ''}`,
       `Emergency: ${form?.emergencyContact || ''} - ${form?.emergencyPhoneFull || ''}`,
@@ -108,12 +111,28 @@ app.post('/api/send-email', async (req, res) => {
       `Weeks in period: ${pricing?.periodWeeks}`,
       `Total for period: $${pricing?.totalForPeriod?.toFixed?.(2)}`,
       '',
-      'Payment via Zelle:',
-      `Recipient: payments@exceedlearningcenterny.com`,
-      `Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
-      `Payer: ${zelle?.zellePayerName || ''}`,
-      `Confirmation: ${zelle?.zelleConfirmation || ''}`,
-      `Notes: ${zelle?.paymentNotes || ''}`,
+      `Payment method: ${form?.paymentMethod || 'Not specified'}`,
+      ...(form?.paymentMethod === 'zelle' ? [
+        'Zelle Details:',
+        `  Recipient: payments@exceedlearningcenterny.com`,
+        `  Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+        `  Payer: ${zelle?.zellePayerName || 'Not provided'}`,
+        `  Confirmation: ${zelle?.zelleConfirmation || 'Not provided'}`,
+      ] : []),
+      ...(form?.paymentMethod === 'credit-card' ? [
+        'Credit Card Details:',
+        `  Card Number: ${form?.cardNumber ? '****' + form.cardNumber.slice(-4) : 'Not provided'}`,
+        `  Expiration: ${form?.cardExpiration || 'Not provided'}`,
+        `  ZIP Code: ${form?.cardZipCode || 'Not provided'}`,
+      ] : []),
+      ...(form?.paymentMethod === 'cash' ? [
+        `Cash Payment: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+      ] : []),
+      ...(form?.paymentMethod === 'check' ? [
+        `Check Payment: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+        `  Make payable to: Exceed Learning Center`,
+      ] : []),
+      `Payment Notes: ${form?.paymentNotes || 'None'}`,
     ];
 
     const text = lines.join('\n');
@@ -147,7 +166,10 @@ app.post('/api/send-email', async (req, res) => {
         '',
         'Registration summary:',
         `• Child: ${form?.childName || ''}`,
+        `• Child DOB: ${form?.childDateOfBirth || ''}`,
+        `• Child Grade: ${form?.childGrade || ''}`,
         `• Parent: ${form?.parentName || ''}`,
+        `• Parent Address: ${form?.parentAddress || ''}`,
         `• Email: ${form?.email || ''}`,
         `• Phone: ${form?.phoneFull || ''}`,
         '',
@@ -169,13 +191,32 @@ app.post('/api/send-email', async (req, res) => {
         `One-time registration fee: $${pricing?.registrationFee?.toFixed?.(2)}`,
         `Total due this period: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
         '',
-        'Payment via Zelle:',
-        '• Recipient: payments@exceedlearningcenterny.com',
-        `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
-        `• Memo: ${memo}`,
-        zelle?.zellePayerName ? `• Payer name: ${zelle.zellePayerName}` : '',
-        zelle?.zelleConfirmation ? `• Confirmation: ${zelle.zelleConfirmation}` : '',
-        zelle?.paymentNotes ? `• Notes: ${zelle.paymentNotes}` : '',
+        `Payment method: ${form?.paymentMethod || 'Not specified'}`,
+        ...(form?.paymentMethod === 'zelle' ? [
+          'Zelle Payment:',
+          '• Recipient: payments@exceedlearningcenterny.com',
+          `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+          `• Memo: ${memo}`,
+          zelle?.zellePayerName ? `• Payer name: ${zelle.zellePayerName}` : '',
+          zelle?.zelleConfirmation ? `• Confirmation: ${zelle.zelleConfirmation}` : '',
+        ] : []),
+        ...(form?.paymentMethod === 'credit-card' ? [
+          'Credit Card Payment:',
+          `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+          `• Card ending in: ${form?.cardNumber ? form.cardNumber.slice(-4) : 'Not provided'}`,
+        ] : []),
+        ...(form?.paymentMethod === 'cash' ? [
+          'Cash Payment:',
+          `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+          '• Please bring payment to the center',
+        ] : []),
+        ...(form?.paymentMethod === 'check' ? [
+          'Check Payment:',
+          `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+          '• Make payable to: Exceed Learning Center',
+          `• Memo: ${memo}`,
+        ] : []),
+        form?.paymentNotes ? `• Payment notes: ${form.paymentNotes}` : '',
       ].filter(Boolean as any) as string[];
 
       const clientHtml = `
@@ -187,7 +228,10 @@ app.post('/api/send-email', async (req, res) => {
             <h3 style="margin:0 0 8px; font-size:16px">Registration summary</h3>
             <ul style="margin:0; padding-left:18px; line-height:1.6">
               <li><strong>Child:</strong> ${form?.childName || ''}</li>
+              <li><strong>Child DOB:</strong> ${form?.childDateOfBirth || ''}</li>
+              <li><strong>Child Grade:</strong> ${form?.childGrade || ''}</li>
               <li><strong>Parent:</strong> ${form?.parentName || ''}</li>
+              <li><strong>Parent Address:</strong> ${form?.parentAddress || ''}</li>
               <li><strong>Email:</strong> ${form?.email || ''}</li>
               <li><strong>Phone:</strong> ${form?.phoneFull || ''}</li>
             </ul>
@@ -219,15 +263,33 @@ app.post('/api/send-email', async (req, res) => {
           </div>
 
           <div style="background:#ecfeff; border:1px solid #cffafe; border-radius:10px; padding:12px 14px;">
-            <h3 style="margin:0 0 8px; font-size:16px">Payment via Zelle</h3>
+            <h3 style="margin:0 0 8px; font-size:16px">Payment Information</h3>
+            <p style="margin:0 0 8px"><strong>Method:</strong> ${form?.paymentMethod || 'Not specified'}</p>
+            ${form?.paymentMethod === 'zelle' ? `
             <ul style="margin:0; padding-left:18px; line-height:1.6">
               <li>Recipient: <strong>payments@exceedlearningcenterny.com</strong></li>
               <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
               <li>Memo: <code>${memo}</code></li>
               ${zelle?.zellePayerName ? `<li>Payer name: ${zelle.zellePayerName}</li>` : ''}
               ${zelle?.zelleConfirmation ? `<li>Confirmation: ${zelle.zelleConfirmation}</li>` : ''}
-              ${zelle?.paymentNotes ? `<li>Notes: ${zelle.paymentNotes}</li>` : ''}
-            </ul>
+            </ul>` : ''}
+            ${form?.paymentMethod === 'credit-card' ? `
+            <ul style="margin:0; padding-left:18px; line-height:1.6">
+              <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
+              <li>Card ending in: <strong>${form?.cardNumber ? form.cardNumber.slice(-4) : 'Not provided'}</strong></li>
+            </ul>` : ''}
+            ${form?.paymentMethod === 'cash' ? `
+            <ul style="margin:0; padding-left:18px; line-height:1.6">
+              <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
+              <li>Please bring payment to the center</li>
+            </ul>` : ''}
+            ${form?.paymentMethod === 'check' ? `
+            <ul style="margin:0; padding-left:18px; line-height:1.6">
+              <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
+              <li>Make payable to: <strong>Exceed Learning Center</strong></li>
+              <li>Memo: <code>${memo}</code></li>
+            </ul>` : ''}
+            ${form?.paymentNotes ? `<p style="margin:8px 0 0"><strong>Notes:</strong> ${form.paymentNotes}</p>` : ''}
           </div>
         </div>
       `;
