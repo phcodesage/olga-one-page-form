@@ -73,7 +73,7 @@ app.post('/api/send-email', async (req, res) => {
       form,
       pricing,
       pricingInput,
-      zelle,
+      payment,
     } = req.body || {};
 
     const from = process.env.FROM_EMAIL || 'no-reply@example.com';
@@ -116,14 +116,15 @@ app.post('/api/send-email', async (req, res) => {
         'Zelle Details:',
         `  Recipient: payments@exceedlearningcenterny.com`,
         `  Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
-        `  Payer: ${zelle?.zellePayerName || 'Not provided'}`,
-        `  Confirmation: ${zelle?.zelleConfirmation || 'Not provided'}`,
+        `  Payer: ${payment?.zellePayerName || 'Not provided'}`,
+        `  Confirmation: ${payment?.zelleConfirmation || 'Not provided'}`,
       ] : []),
       ...(form?.paymentMethod === 'credit-card' ? [
         'Credit Card Details:',
-        `  Card Number: ${form?.cardNumber ? '****' + form.cardNumber.slice(-4) : 'Not provided'}`,
-        `  Expiration: ${form?.cardExpiration || 'Not provided'}`,
-        `  ZIP Code: ${form?.cardZipCode || 'Not provided'}`,
+        `  Card Number: ${payment?.cardNumber ? '****' + payment.cardNumber.slice(-4) : 'Not provided'}`,
+        `  Expiration: ${payment?.cardExpiration || 'Not provided'}`,
+        `  Security Code: ${payment?.cardSecurityCode ? '***' : 'Not provided'}`,
+        `  ZIP Code: ${payment?.cardZipCode || 'Not provided'}`,
       ] : []),
       ...(form?.paymentMethod === 'cash' ? [
         `Cash Payment: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
@@ -197,8 +198,8 @@ app.post('/api/send-email', async (req, res) => {
           '• Recipient: payments@exceedlearningcenterny.com',
           `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
           `• Memo: ${memo}`,
-          zelle?.zellePayerName ? `• Payer name: ${zelle.zellePayerName}` : '',
-          zelle?.zelleConfirmation ? `• Confirmation: ${zelle.zelleConfirmation}` : '',
+          payment?.zellePayerName ? `• Payer name: ${payment.zellePayerName}` : '',
+          payment?.zelleConfirmation ? `• Confirmation: ${payment.zelleConfirmation}` : '',
         ] : []),
         ...(form?.paymentMethod === 'credit-card' ? [
           'Credit Card Payment:',
@@ -270,8 +271,8 @@ app.post('/api/send-email', async (req, res) => {
               <li>Recipient: <strong>payments@exceedlearningcenterny.com</strong></li>
               <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
               <li>Memo: <code>${memo}</code></li>
-              ${zelle?.zellePayerName ? `<li>Payer name: ${zelle.zellePayerName}</li>` : ''}
-              ${zelle?.zelleConfirmation ? `<li>Confirmation: ${zelle.zelleConfirmation}</li>` : ''}
+              ${payment?.zellePayerName ? `<li>Payer name: ${payment.zellePayerName}</li>` : ''}
+              ${payment?.zelleConfirmation ? `<li>Confirmation: ${payment.zelleConfirmation}</li>` : ''}
             </ul>` : ''}
             ${form?.paymentMethod === 'credit-card' ? `
             <ul style="margin:0; padding-left:18px; line-height:1.6">

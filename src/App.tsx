@@ -84,9 +84,16 @@ function App() {
           form: payload,
           pricing,
           pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington },
-          zelle: {
+          payment: {
+            // Zelle fields
             zellePayerName: formData.zellePayerName,
             zelleConfirmation: formData.zelleConfirmation,
+            // Credit card fields
+            cardNumber: formData.cardNumber,
+            cardExpiration: formData.cardExpiration,
+            cardSecurityCode: formData.cardSecurityCode,
+            cardZipCode: formData.cardZipCode,
+            // General payment notes
             paymentNotes: formData.paymentNotes,
           },
         }),
@@ -801,7 +808,8 @@ function App() {
             {/* Credit Card Payment Details */}
             {formData.paymentMethod === 'credit-card' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Credit Card Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Credit Card Information</h3>
+                <p className="text-sm text-gray-700 mb-4">To pay by credit card, please write down your card information below. The admins will receive your credit card details and process the payment manually.</p>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-2">Card Number *</label>
@@ -856,7 +864,7 @@ function App() {
                     />
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 mt-3">Your credit card information is secure and will be processed safely.</p>
+                <p className="text-xs text-gray-600 mt-3">Your credit card information will be sent securely to our admins who will process the payment manually. Total amount: <span className="font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</span></p>
               </div>
             )}
 
