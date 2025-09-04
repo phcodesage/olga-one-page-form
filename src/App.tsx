@@ -305,6 +305,66 @@ function App() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
+              {/* Extension Hours Options */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Extended Hours (Optional)</label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="extensionHours"
+                      value="none"
+                      checked={!extensionsEnabled}
+                      onChange={() => setExtensionsEnabled(false)}  
+                      className="text-rose-600 focus:ring-rose-500"
+                    />
+                    <span className="text-gray-900">No extended hours</span>
+                  </label>
+                  <label className="flex items-center justify-between gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="extensionHours"
+                        value="3-6"
+                        checked={extensionsEnabled && timeBlock === '3-6'}
+                        onChange={() => { setExtensionsEnabled(true); setTimeBlock('3-6'); }}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span className="text-gray-900">3-6 PM</span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">$30 Additional fee</span>
+                  </label>
+                  <label className="flex items-center justify-between gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="extensionHours"
+                        value="4-7"
+                        checked={extensionsEnabled && timeBlock === '4-7'}
+                        onChange={() => { setExtensionsEnabled(true); setTimeBlock('4-7'); }}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span className="text-gray-900">4-7 PM</span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">$30 Additional fee</span>
+                  </label>
+                  <label className="flex items-center justify-between gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="extensionHours"
+                        value="3-7"
+                        checked={extensionsEnabled && timeBlock === '3-7'}
+                        onChange={() => { setExtensionsEnabled(true); setTimeBlock('3-7'); }}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span className="text-gray-900">3-7 PM</span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">$50 Additional fee</span>
+                  </label>
+                </div>
+              </div>
+
               {/* Days per week */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Days per Week</label>
@@ -314,45 +374,11 @@ function App() {
                   className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
                 >
                   {[1,2,3,4,5].map(d => (
-                    <option key={d} value={d}>{d}</option>
+                    <option key={d} value={d}>{d} day{d > 1 ? 's' : ''}</option>
                   ))}
                 </select>
-              </div>
-
-              {/* Time block */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="block text-sm font-medium text-gray-700">Extension Hours (optional)</span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-100 text-rose-700 border border-rose-200">Optional</span>
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" checked={extensionsEnabled} onChange={(e) => setExtensionsEnabled(e.target.checked)} />
-                    Enable extension hours
-                  </label>
-                </div>
-                {extensionsEnabled && (
-                  <>
-                    <p className="text-xs text-gray-600 mb-2">Choose your preferred extension time.</p>
-                    <div className="grid gap-2">
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="timeBlock" value="4-6" checked={timeBlock === '4-6'} onChange={() => setTimeBlock('4-6')} />
-                        <span>4–6 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">base</span></span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="timeBlock" value="3-6" checked={timeBlock === '3-6'} onChange={() => setTimeBlock('3-6')} />
-                        <span>3–6 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$30/day</span></span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="timeBlock" value="4-7" checked={timeBlock === '4-7'} onChange={() => setTimeBlock('4-7')} />
-                        <span>4–7 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$30/day</span></span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="timeBlock" value="3-7" checked={timeBlock === '3-7'} onChange={() => setTimeBlock('3-7')} />
-                        <span>3–7 PM <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$50/day</span></span>
-                      </label>
-                    </div>
-                  </>
+                {school === 'Searingtown' && daysPerWeek >= 2 && (
+                  <p className="text-xs text-green-600 mt-1">✓ 40% discount applied for Searingtown students with 2+ days</p>
                 )}
               </div>
 
