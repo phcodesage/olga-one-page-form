@@ -19,12 +19,15 @@ export interface PricingInput {
   abacusEnabled?: boolean;
   // Carrington waiver for the abacus registration fee
   isCarrington?: boolean;
+  // Chess add-on
+  chessEnabled?: boolean;
 }
 
 export interface PricingBreakdown {
   baseWeekly: number;
   addOnWeekly: number;
   abacusWeekly: number;
+  chessWeekly: number;
   schoolDiscountWeekly: number;
   prepayDiscountWeekly: number;
   finalWeekly: number;
@@ -86,6 +89,10 @@ export function calculatePrice(input: PricingInput): PricingBreakdown {
   const addOnWeekly = (input.extensionsEnabled ? addOnPerDay(input.timeBlock) : 0) * input.daysPerWeek;
   // Abacus: $350/month => $87.50/week equivalent
   const abacusWeekly = input.abacusEnabled ? +(350 / 4).toFixed(2) : 0;
+  // Chess: $60/week, or $220/month => $55/week equivalent when monthly
+  const chessWeekly = input.chessEnabled
+    ? +(input.frequency === 'monthly' ? (220 / 4) : 60).toFixed(2)
+    : 0;
 
   // Apply Searingtown discount (40%) to base + add-ons, only if enrolled 2+ days/week
   // School discount applies only to core program (base + time add-ons), not abacus
@@ -96,8 +103,8 @@ export function calculatePrice(input: PricingInput): PricingBreakdown {
   // Prepay weekly discount
   const prepayDiscountWeekly = prepayWeeklyDiscount(input.frequency, input.daysPerWeek);
 
-  // Final weekly = discounted core program + abacus weekly
-  let finalWeekly = (subtotal - schoolDiscountWeekly - prepayDiscountWeekly) + abacusWeekly;
+  // Final weekly = discounted core program + (abacus + chess) weekly (no discounts)
+  let finalWeekly = (subtotal - schoolDiscountWeekly - prepayDiscountWeekly) + abacusWeekly + chessWeekly;
   if (finalWeekly < 0) finalWeekly = 0;
   finalWeekly = +finalWeekly.toFixed(2);
 
@@ -109,6 +116,7 @@ export function calculatePrice(input: PricingInput): PricingBreakdown {
     baseWeekly,
     addOnWeekly,
     abacusWeekly,
+    chessWeekly,
     schoolDiscountWeekly,
     prepayDiscountWeekly,
     finalWeekly,

@@ -74,4 +74,42 @@ describe('pricing engine', () => {
     });
     expect(r.finalWeekly).toBeGreaterThanOrEqual(0);
   });
+
+  it('adds $90 registration fee when Abacus is enabled (non-Carrington)', () => {
+    const r = price({
+      abacusEnabled: true,
+      isCarrington: false,
+      frequency: 'monthly',
+    });
+    expect(r.registrationFee).toBe(90);
+    // Ensure total includes the one-time fee
+    expect(r.totalForPeriod).toBeCloseTo(r.finalWeekly * r.periodWeeks + 90, 2);
+  });
+
+  it('waives registration fee for Carrington students when Abacus is enabled', () => {
+    const r = price({
+      abacusEnabled: true,
+      isCarrington: true,
+      frequency: 'monthly',
+    });
+    expect(r.registrationFee).toBe(0);
+    expect(r.totalForPeriod).toBeCloseTo(r.finalWeekly * r.periodWeeks, 2);
+  });
+
+  it('applies Chess at $60/week for weekly frequency (no discounts)', () => {
+    const r = price({ chessEnabled: true, frequency: 'weekly', daysPerWeek: 3, school: 'Searingtown' });
+    expect(r.chessWeekly).toBeCloseTo(60, 2);
+    // School and prepay discounts do not touch chess
+    // finalWeekly includes chessWeekly added after discounts
+    const coreWeekly = (r.baseWeekly + r.addOnWeekly) - r.schoolDiscountWeekly - r.prepayDiscountWeekly;
+    expect(r.finalWeekly).toBeCloseTo(coreWeekly + 60, 2);
+  });
+
+  it('applies Chess at $220/month => $55/week equivalent when monthly', () => {
+    const r = price({ chessEnabled: true, frequency: 'monthly', daysPerWeek: 5, school: 'Other' });
+    expect(r.chessWeekly).toBeCloseTo(55, 2);
+    expect(r.periodWeeks).toBe(4);
+    // Total includes chessWeekly * weeks
+    expect(r.totalForPeriod).toBeCloseTo(r.finalWeekly * 4 + r.registrationFee, 2);
+  });
 });

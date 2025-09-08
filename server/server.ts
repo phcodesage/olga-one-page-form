@@ -100,10 +100,12 @@ app.post('/api/send-email', async (req, res) => {
       `Schedule: ${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}`,
       `Extension hours: ${pricingInput?.extensionsEnabled ? `Enabled (${pricingInput?.timeBlock})` : 'Disabled'}`,
       `Abacus: ${pricingInput?.abacusEnabled ? 'Enabled' : 'Disabled'}`,
+      `Chess: ${pricingInput?.chessEnabled ? 'Enabled' : 'Disabled'}`,
       `Carrington waiver: ${pricingInput?.isCarrington ? 'Yes' : 'No'}`,
       `Base weekly: $${pricing?.baseWeekly?.toFixed?.(2)}`,
       `Add-ons weekly: $${pricing?.addOnWeekly?.toFixed?.(2)}`,
       `Abacus weekly: $${pricing?.abacusWeekly?.toFixed?.(2)}`,
+      `Chess weekly: $${pricing?.chessWeekly?.toFixed?.(2)}`,
       `Registration fee (one-time): $${pricing?.registrationFee?.toFixed?.(2)}`,
       `School discount: -$${pricing?.schoolDiscountWeekly?.toFixed?.(2)}`,
       `Prepay discount: -$${pricing?.prepayDiscountWeekly?.toFixed?.(2)}`,
@@ -178,12 +180,14 @@ app.post('/api/send-email', async (req, res) => {
         `• ${pricingInput?.daysPerWeek} days, ${pricingInput?.timeBlock}, ${pricingInput?.school}, ${pricingInput?.frequency}`,
         `• Extension hours: ${pricingInput?.extensionsEnabled ? `Enabled (${pricingInput?.timeBlock})` : 'Disabled'}`,
         `• Abacus: ${pricingInput?.abacusEnabled ? 'Enabled' : 'Disabled'}`,
+        `• Chess: ${pricingInput?.chessEnabled ? 'Enabled' : 'Disabled'}`,
         `• Carrington waiver: ${pricingInput?.isCarrington ? 'Yes' : 'No'}`,
         '',
         'Price breakdown (per week):',
         `• Base weekly: $${pricing?.baseWeekly?.toFixed?.(2)}`,
         `• Add-ons weekly: $${pricing?.addOnWeekly?.toFixed?.(2)}`,
         `• Abacus weekly: $${pricing?.abacusWeekly?.toFixed?.(2)}`,
+        `• Chess weekly: $${pricing?.chessWeekly?.toFixed?.(2)}`,
         `• School discount: -$${pricing?.schoolDiscountWeekly?.toFixed?.(2)}`,
         `• Prepay discount: -$${pricing?.prepayDiscountWeekly?.toFixed?.(2)}`,
         `• Final weekly: $${pricing?.finalWeekly?.toFixed?.(2)}`,
@@ -247,6 +251,7 @@ app.post('/api/send-email', async (req, res) => {
             <ul style="margin:6px 0 0; padding-left:18px; line-height:1.6">
               <li>Extension hours: <strong>${pricingInput?.extensionsEnabled ? `Enabled (${pricingInput?.timeBlock})` : 'Disabled'}</strong></li>
               <li>Abacus: <strong>${pricingInput?.abacusEnabled ? 'Enabled' : 'Disabled'}</strong></li>
+              <li>Chess: <strong>${pricingInput?.chessEnabled ? 'Enabled' : 'Disabled'}</strong></li>
               <li>Carrington waiver: <strong>${pricingInput?.isCarrington ? 'Yes' : 'No'}</strong></li>
             </ul>
           </div>
@@ -257,6 +262,7 @@ app.post('/api/send-email', async (req, res) => {
               <li>Base weekly: <strong>$${pricing?.baseWeekly?.toFixed?.(2)}</strong></li>
               <li>Add-ons weekly: <strong>$${pricing?.addOnWeekly?.toFixed?.(2)}</strong></li>
               <li>Abacus weekly: <strong>$${pricing?.abacusWeekly?.toFixed?.(2)}</strong></li>
+              <li>Chess weekly: <strong>$${pricing?.chessWeekly?.toFixed?.(2)}</strong></li>
               <li>School discount: <strong>-$${pricing?.schoolDiscountWeekly?.toFixed?.(2)}</strong></li>
               <li>Prepay discount: <strong>-$${pricing?.prepayDiscountWeekly?.toFixed?.(2)}</strong></li>
               <li>Final weekly: <strong>$${pricing?.finalWeekly?.toFixed?.(2)}</strong></li>

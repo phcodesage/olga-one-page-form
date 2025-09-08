@@ -32,10 +32,13 @@ describe('App form', () => {
     const radios = screen.getAllByRole('radio', { name: /4–6 PM/i });
     await user.click(radios[0]);
 
-    // Fill child and parent info
+    // Fill child and parent info (all required fields)
     await user.type(screen.getByLabelText("Child's Full Name *"), 'Alice Johnson');
     await user.type(screen.getByLabelText('Parent/Guardian Name *'), 'Mary Johnson');
     await user.type(screen.getByLabelText('Email Address *'), 'mary@example.com');
+    await user.type(screen.getByLabelText("Child's Date of Birth *"), '2015-01-01');
+    await user.selectOptions(screen.getByLabelText("Child's Grade *"), '3rd Grade');
+    await user.type(screen.getByLabelText('Parent Address *'), '123 Main St, City, ST 00000');
 
     // Phone number with country code select (aria-label used)
     const phoneCountry = screen.getByLabelText('Phone country code');

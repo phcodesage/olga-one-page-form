@@ -42,6 +42,7 @@ function App() {
   const [frequency, setFrequency] = useState<BillingFrequency>('monthly');
   const [extensionsEnabled, setExtensionsEnabled] = useState<boolean>(false);
   const [abacusEnabled, setAbacusEnabled] = useState<boolean>(false);
+  const [chessEnabled, setChessEnabled] = useState<boolean>(false);
   const [isCarrington, setIsCarrington] = useState<boolean>(false);
 
   // Submission state
@@ -63,13 +64,13 @@ function App() {
     e.preventDefault();
     if (isSubmitting || submitted) return;
     setIsSubmitting(true);
-    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington });
+    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled });
     const payload = {
       selectedOption,
       ...formData,
       phoneFull: `${formData.phoneCountry} ${formData.phone}`,
       emergencyPhoneFull: `${formData.emergencyPhoneCountry} ${formData.emergencyPhone}`,
-      pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington },
+      pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled },
       pricing,
       paymentMethod: formData.paymentMethod,
     } as const;
@@ -83,7 +84,7 @@ function App() {
         body: JSON.stringify({
           form: payload,
           pricing,
-          pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington },
+          pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled },
           payment: {
             // Zelle fields
             zellePayerName: formData.zellePayerName,
@@ -162,8 +163,8 @@ function App() {
   };
 
   const price = useMemo(() =>
-    calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington })
-  , [daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington]);
+    calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled })
+  , [daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled]);
 
   const qrRef = useRef<HTMLCanvasElement | null>(null);
   const qrPayload = useMemo(() => {
@@ -201,7 +202,7 @@ function App() {
       {/* Header */}
       <header className="bg-slate-800 text-white py-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Afterschool Program Signup</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Exceed Learning Center Registration Form</h1>
           <p className="text-slate-300 text-lg">Quality care and learning for your child</p>
         </div>
       </header>
@@ -404,10 +405,10 @@ function App() {
                     <span>Add Abacus <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$350/mo</span> <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">+$90 one-time</span></span>
                   </label>
                 </div>
-                <p className="text-xs text-gray-600 mb-2">No 40% school or prepay discounts apply to Abacus. Carrington’s students get the $90 registration fee waived.</p>
+                <p className="text-xs text-gray-600 mb-2">No 40% school or prepay discounts apply to Abacus. Carrington students get the $90 registration fee waived.</p>
                 <label className={`flex items-center gap-2 text-sm ${abacusEnabled ? 'text-gray-700' : 'text-gray-400'}`}>
                   <input type="checkbox" checked={isCarrington} onChange={(e) => setIsCarrington(e.target.checked)} disabled={!abacusEnabled} aria-disabled={!abacusEnabled} />
-                  Carrington’s student (waives $90 registration)
+                  Carrington student (waives $90 registration)
                 </label>
                 {!abacusEnabled && (
                   <p className="text-[11px] text-gray-500 mt-1">Enable Abacus to apply the Carrington waiver.</p>
@@ -415,6 +416,18 @@ function App() {
                 {abacusEnabled && isCarrington && (
                   <p className="text-[11px] text-green-700 mt-1">$90 registration fee waived.</p>
                 )}
+              </div>
+
+              {/* Chess add-on */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="block text-sm font-medium text-gray-700">Chess classes</span>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={chessEnabled} onChange={(e) => setChessEnabled(e.target.checked)} />
+                    <span>Add Chess <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$60/week</span> <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">or $220/month</span></span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-600">No school or prepay discounts apply to Chess.</p>
               </div>
 
               {/* Billing frequency */}
@@ -450,6 +463,9 @@ function App() {
                   {price.abacusWeekly > 0 && (
                     <li className="flex justify-between"><span>Abacus (no discounts)</span><span>${price.abacusWeekly.toFixed(2)}</span></li>
                   )}
+                  {price.chessWeekly > 0 && (
+                    <li className="flex justify-between"><span>Chess (no discounts)</span><span>${price.chessWeekly.toFixed(2)}</span></li>
+                  )}
                   <li className="flex justify-between font-medium"><span>Subtotal (before discounts)</span><span>${(price.baseWeekly + price.addOnWeekly).toFixed(2)}</span></li>
                   <li className="flex justify-between"><span>School discount</span><span>- ${price.schoolDiscountWeekly.toFixed(2)}</span></li>
                   <li className="flex justify-between"><span>Prepay discount</span><span>- ${price.prepayDiscountWeekly.toFixed(2)}</span></li>
@@ -466,6 +482,23 @@ function App() {
                   <span>Weeks in period</span>
                   <span>{price.periodWeeks}</span>
                 </div>
+                {/* Afterschool + add-ons subtotals */}
+                <div className="mt-2 flex justify-between text-sm text-gray-700">
+                  <span>Afterschool subtotal</span>
+                  <span>${(((price.baseWeekly + price.addOnWeekly) - price.schoolDiscountWeekly - price.prepayDiscountWeekly) * price.periodWeeks).toFixed(2)}</span>
+                </div>
+                {price.abacusWeekly > 0 && (
+                  <div className="mt-2 flex justify-between text-sm text-gray-700">
+                    <span>Abacus total</span>
+                    <span>${(price.abacusWeekly * price.periodWeeks).toFixed(2)}</span>
+                  </div>
+                )}
+                {price.chessWeekly > 0 && (
+                  <div className="mt-2 flex justify-between text-sm text-gray-700">
+                    <span>Chess total</span>
+                    <span>${(price.chessWeekly * price.periodWeeks).toFixed(2)}</span>
+                  </div>
+                )}
                 {price.registrationFee > 0 && (
                   <div className="mt-2 flex justify-between text-sm text-gray-700">
                     <span>One-time registration fee</span>
@@ -952,6 +985,14 @@ function App() {
                   <span className="w-2 h-2 bg-rose-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                   <span>Late payments may result in additional fees and temporary suspension of services.</span>
                 </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-rose-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span>No refunds for payments made.</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-rose-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span>No-shows or cancellations made less than 24 hours before a session will be charged the full session amount. No make-up lessons.</span>
+                </li>
               </ul>
               
               <div className="mt-6 p-4 bg-white rounded-lg border">
@@ -1006,9 +1047,11 @@ function App() {
       {/* Footer */}
       <footer className="bg-slate-800 text-white py-8 px-4 mt-16">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-slate-300">
-            Questions? Contact Olga at <strong className="text-orange-300">718-683-1750</strong>
+          <p className="text-slate-300">Questions? Contact our support team at</p>
+          <p className="mt-1">
+            <a href="mailto:help@exceedlearningcenterny.com" className="text-orange-300 underline">help@exceedlearningcenterny.com</a>
           </p>
+          <p className="mt-1 text-slate-300">Or call <a href="tel:15162263173" className="text-orange-300 underline">516‑226‑3173</a></p>
         </div>
       </footer>
     </div>
