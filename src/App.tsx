@@ -202,6 +202,11 @@ function App() {
       {/* Header */}
       <header className="bg-slate-800 text-white py-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
+          <img
+            src="https://lirp.cdn-website.com/3bba8822/dms3rep/multi/opt/Exceed-learning-center-1920w.png"
+            alt="Exceed Learning Center logo"
+            className="mx-auto mb-4 h-16 md:h-20 w-auto"
+          />
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Exceed Learning Center Registration Form</h1>
           <p className="text-slate-300 text-lg">Quality care and learning for your child</p>
         </div>
@@ -244,6 +249,217 @@ function App() {
             <p className="text-xl font-semibold text-orange-800">40% Off</p>
             <p className="text-orange-700 mt-2">Exclusive discount for Searingtown families</p>
           </div>  
+
+          {/* Child Information (moved to top) */}
+          <section className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold text-rose-700 mb-6">Child Information</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="childName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Child's Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="childName"
+                  name="childName"
+                  value={formData.childName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="childDateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+                  Child's Date of Birth *
+                </label>
+                <input
+                  type="date"
+                  id="childDateOfBirth"
+                  name="childDateOfBirth"
+                  value={formData.childDateOfBirth}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="childGrade" className="block text-sm font-medium text-gray-700 mb-2">
+                  Child's Grade *
+                </label>
+                <select
+                  id="childGrade"
+                  name="childGrade"
+                  value={formData.childGrade}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                >
+                  <option value="">Select grade</option>
+                  <option value="Pre-K">Pre-K</option>
+                  <option value="Kindergarten">Kindergarten</option>
+                  <option value="1st Grade">1st Grade</option>
+                  <option value="2nd Grade">2nd Grade</option>
+                  <option value="3rd Grade">3rd Grade</option>
+                  <option value="4th Grade">4th Grade</option>
+                  <option value="5th Grade">5th Grade</option>
+                  <option value="6th Grade">6th Grade</option>
+                  <option value="7th Grade">7th Grade</option>
+                  <option value="8th Grade">8th Grade</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="parentName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Parent/Guardian Name *
+                </label>
+                <input
+                  type="text"
+                  id="parentName"
+                  name="parentName"
+                  value={formData.parentName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label htmlFor="parentAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                  Parent Address *
+                </label>
+                <input
+                  type="text"
+                  id="parentAddress"
+                  name="parentAddress"
+                  value={formData.parentAddress}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  placeholder="Street address, city, state, ZIP code"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <div className="flex gap-3">
+                  <select
+                    name="phoneCountry"
+                    value={formData.phoneCountry}
+                    onChange={handleInputChange}
+                    className="px-3 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                    aria-label="Phone country code"
+                  >
+                    {countries.map(c => (
+                      <option key={c.code} value={c.dial}>{`${c.flag} ${c.dial}`}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-2">
+                  Emergency Contact Name *
+                </label>
+                <input
+                  type="text"
+                  id="emergencyContact"
+                  name="emergencyContact"
+                  value={formData.emergencyContact}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="emergencyPhone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Emergency Contact Phone *
+                </label>
+                <div className="flex gap-3">
+                  <select
+                    name="emergencyPhoneCountry"
+                    value={formData.emergencyPhoneCountry}
+                    onChange={handleInputChange}
+                    className="px-3 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                    aria-label="Emergency phone country code"
+                  >
+                    {countries.map(c => (
+                      <option key={c.code} value={c.dial}>{`${c.flag} ${c.dial}`}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    id="emergencyPhone"
+                    name="emergencyPhone"
+                    value={formData.emergencyPhone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 space-y-6">
+              <div>
+                <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 mb-2">
+                  Allergies or Medical Conditions
+                </label>
+                <textarea
+                  id="allergies"
+                  name="allergies"
+                  value={formData.allergies}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none resize-vertical"
+                  placeholder="Please list any allergies or medical conditions we should be aware of..."
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="specialInstructions" className="block text-sm font-medium text-gray-700 mb-2">
+                  Special Instructions
+                </label>
+                <textarea
+                  id="specialInstructions"
+                  name="specialInstructions"
+                  value={formData.specialInstructions}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none resize-vertical"
+                  placeholder="Any additional information or special instructions for your child's care..."
+                />
+              </div>
+            </div>
+          </section>
 
           {/* Program Options */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -513,216 +729,6 @@ function App() {
             </div>
           </section>
 
-          {/* Child Information */}
-          <section className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold text-rose-700 mb-6">Child Information</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="childName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Child's Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="childName"
-                  name="childName"
-                  value={formData.childName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="childDateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
-                  Child's Date of Birth *
-                </label>
-                <input
-                  type="date"
-                  id="childDateOfBirth"
-                  name="childDateOfBirth"
-                  value={formData.childDateOfBirth}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="childGrade" className="block text-sm font-medium text-gray-700 mb-2">
-                  Child's Grade *
-                </label>
-                <select
-                  id="childGrade"
-                  name="childGrade"
-                  value={formData.childGrade}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  required
-                >
-                  <option value="">Select grade</option>
-                  <option value="Pre-K">Pre-K</option>
-                  <option value="Kindergarten">Kindergarten</option>
-                  <option value="1st Grade">1st Grade</option>
-                  <option value="2nd Grade">2nd Grade</option>
-                  <option value="3rd Grade">3rd Grade</option>
-                  <option value="4th Grade">4th Grade</option>
-                  <option value="5th Grade">5th Grade</option>
-                  <option value="6th Grade">6th Grade</option>
-                  <option value="7th Grade">7th Grade</option>
-                  <option value="8th Grade">8th Grade</option>
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="parentName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Parent/Guardian Name *
-                </label>
-                <input
-                  type="text"
-                  id="parentName"
-                  name="parentName"
-                  value={formData.parentName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  required
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label htmlFor="parentAddress" className="block text-sm font-medium text-gray-700 mb-2">
-                  Parent Address *
-                </label>
-                <input
-                  type="text"
-                  id="parentAddress"
-                  name="parentAddress"
-                  value={formData.parentAddress}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  placeholder="Street address, city, state, ZIP code"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
-                </label>
-                <div className="flex gap-3">
-                  <select
-                    name="phoneCountry"
-                    value={formData.phoneCountry}
-                    onChange={handleInputChange}
-                    className="px-3 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                    aria-label="Phone country code"
-                  >
-                    {countries.map(c => (
-                      <option key={c.code} value={c.dial}>{`${c.flag} ${c.dial}`}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-2">
-                  Emergency Contact Name *
-                </label>
-                <input
-                  type="text"
-                  id="emergencyContact"
-                  name="emergencyContact"
-                  value={formData.emergencyContact}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="emergencyPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Emergency Contact Phone *
-                </label>
-                <div className="flex gap-3">
-                  <select
-                    name="emergencyPhoneCountry"
-                    value={formData.emergencyPhoneCountry}
-                    onChange={handleInputChange}
-                    className="px-3 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                    aria-label="Emergency phone country code"
-                  >
-                    {countries.map(c => (
-                      <option key={c.code} value={c.dial}>{`${c.flag} ${c.dial}`}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="tel"
-                    id="emergencyPhone"
-                    name="emergencyPhone"
-                    value={formData.emergencyPhone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6 space-y-6">
-              <div>
-                <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 mb-2">
-                  Allergies or Medical Conditions
-                </label>
-                <textarea
-                  id="allergies"
-                  name="allergies"
-                  value={formData.allergies}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none resize-vertical"
-                  placeholder="Please list any allergies or medical conditions we should be aware of..."
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="specialInstructions" className="block text-sm font-medium text-gray-700 mb-2">
-                  Special Instructions
-                </label>
-                <textarea
-                  id="specialInstructions"
-                  name="specialInstructions"
-                  value={formData.specialInstructions}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-colors duration-200 outline-none resize-vertical"
-                  placeholder="Any additional information or special instructions for your child's care..."
-                />
-              </div>
-            </div>
-          </section>
 
           {/* Payment Information */}
           <section className="bg-white rounded-lg shadow-md p-6">
