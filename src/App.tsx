@@ -38,12 +38,14 @@ function App() {
   // Pricing UI state
   const [daysPerWeek, setDaysPerWeek] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [timeBlock, setTimeBlock] = useState<TimeBlock>('4-6');
-  const [school, setSchool] = useState<School>('Searingtown');
+  // School selection removed from UI; default to 'Other' for pricing logic
+  const school: School = 'Other';
   const [frequency, setFrequency] = useState<BillingFrequency>('monthly');
   const [extensionsEnabled, setExtensionsEnabled] = useState<boolean>(false);
   const [abacusEnabled, setAbacusEnabled] = useState<boolean>(false);
-  const [chessEnabled, setChessEnabled] = useState<boolean>(false);
-  const [isCarrington, setIsCarrington] = useState<boolean>(false);
+  const [chessPlan, setChessPlan] = useState<'none' | '1x' | '2x'>('none');
+  // Independent registration add-on (+$90 one-time)
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
 
   // Submission state
   const [submitted, setSubmitted] = useState(false);
@@ -64,13 +66,13 @@ function App() {
     e.preventDefault();
     if (isSubmitting || submitted) return;
     setIsSubmitting(true);
-    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled });
+    const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan });
     const payload = {
       selectedOption,
       ...formData,
       phoneFull: `${formData.phoneCountry} ${formData.phone}`,
       emergencyPhoneFull: `${formData.emergencyPhoneCountry} ${formData.emergencyPhone}`,
-      pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled },
+      pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan },
       pricing,
       paymentMethod: formData.paymentMethod,
     } as const;
@@ -84,7 +86,7 @@ function App() {
         body: JSON.stringify({
           form: payload,
           pricing,
-          pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled },
+          pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan },
           payment: {
             // Zelle fields
             zellePayerName: formData.zellePayerName,
@@ -163,8 +165,8 @@ function App() {
   };
 
   const price = useMemo(() =>
-    calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled })
-  , [daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, isCarrington, chessEnabled]);
+    calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan })
+  , [daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan]);
 
   const qrRef = useRef<HTMLCanvasElement | null>(null);
   const qrPayload = useMemo(() => {
@@ -584,23 +586,9 @@ function App() {
                     <option key={d} value={d}>{d} day{d > 1 ? 's' : ''}</option>
                   ))}
                 </select>
-                {school === 'Searingtown' && daysPerWeek >= 2 && (
-                  <p className="text-xs text-green-600 mt-1">✓ 40% discount applied for Searingtown students with 2+ days</p>
-                )}
+                {/* School-specific discount hint removed */}
               </div>
 
-              {/* School selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">School</label>
-                <select
-                  value={school}
-                  onChange={(e) => setSchool(e.target.value as School)}
-                  className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg bg-white focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
-                >
-                  <option value="Searingtown">Searingtown (40% off for 2+ days)</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
 
               {/* Abacus add-on */}
               <div className="md:col-start-2">
@@ -608,32 +596,63 @@ function App() {
                   <span className="block text-sm font-medium text-gray-700">Abacus classes</span>
                   <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" checked={abacusEnabled} onChange={(e) => setAbacusEnabled(e.target.checked)} />
-                    <span>Add Abacus <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$350/mo</span> <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">+$90 one-time</span></span>
+                    <span>Add Abacus <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$350/mo</span></span>
                   </label>
                 </div>
-                <p className="text-xs text-gray-600 mb-2">No 40% school or prepay discounts apply to Abacus. Carrington students get the $90 registration fee waived.</p>
-                <label className={`flex items-center gap-2 text-sm ${abacusEnabled ? 'text-gray-700' : 'text-gray-400'}`}>
-                  <input type="checkbox" checked={isCarrington} onChange={(e) => setIsCarrington(e.target.checked)} disabled={!abacusEnabled} aria-disabled={!abacusEnabled} />
-                  Carrington student (waives $90 registration)
+                <p className="text-xs text-gray-600 mb-2">No 40% school or prepay discounts apply to Abacus.</p>
+                <label className={`flex items-center gap-2 text-sm text-gray-700`}>
+                  <input type="checkbox" checked={registrationEnabled} onChange={(e) => setRegistrationEnabled(e.target.checked)} />
+                  <span>Add Registration <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">+$90 one-time</span></span>
                 </label>
-                {!abacusEnabled && (
-                  <p className="text-[11px] text-gray-500 mt-1">Enable Abacus to apply the Carrington waiver.</p>
-                )}
-                {abacusEnabled && isCarrington && (
-                  <p className="text-[11px] text-green-700 mt-1">$90 registration fee waived.</p>
-                )}
               </div>
 
               {/* Chess add-on */}
               <div className="md:col-start-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="block text-sm font-medium text-gray-700">Chess classes</span>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" checked={chessEnabled} onChange={(e) => setChessEnabled(e.target.checked)} />
-                    <span>Add Chess <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 border border-rose-200">+$60/week</span> <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-700 border">or $220/month</span></span>
+                </div>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="chessPlan"
+                      value="none"
+                      checked={chessPlan === 'none'}
+                      onChange={() => setChessPlan('none')}
+                      className="text-rose-600 focus:ring-rose-500"
+                    />
+                    <span className="text-gray-900">No chess</span>
+                  </label>
+                  <label className="flex items-center justify-between gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="chessPlan"
+                        value="1x"
+                        checked={chessPlan === '1x'}
+                        onChange={() => setChessPlan('1x')}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span className="text-gray-900">1x/week</span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">+$60/week</span>
+                  </label>
+                  <label className="flex items-center justify-between gap-3 p-3 border-2 border-orange-300 rounded-lg hover:border-orange-400 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="chessPlan"
+                        value="2x"
+                        checked={chessPlan === '2x'}
+                        onChange={() => setChessPlan('2x')}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <span className="text-gray-900">2x/week</span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">+$100/week</span>
                   </label>
                 </div>
-                <p className="text-xs text-gray-600">No school or prepay discounts apply to Chess.</p>
+                <p className="text-xs text-gray-600 mt-2">No school or prepay discounts apply to Chess.</p>
               </div>
 
               {/* Billing frequency */}

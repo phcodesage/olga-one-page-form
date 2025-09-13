@@ -17,10 +17,10 @@ export interface PricingInput {
   extensionsEnabled?: boolean;
   // Abacus add-on
   abacusEnabled?: boolean;
-  // Carrington waiver for the abacus registration fee
-  isCarrington?: boolean;
-  // Chess add-on
-  chessEnabled?: boolean;
+  // Independent registration add-on (+$90 one-time)
+  registrationEnabled?: boolean;
+  // Chess add-on plan
+  chessPlan?: 'none' | '1x' | '2x';
 }
 
 export interface PricingBreakdown {
@@ -89,10 +89,16 @@ export function calculatePrice(input: PricingInput): PricingBreakdown {
   const addOnWeekly = (input.extensionsEnabled ? addOnPerDay(input.timeBlock) : 0) * input.daysPerWeek;
   // Abacus: $350/month => $87.50/week equivalent
   const abacusWeekly = input.abacusEnabled ? +(350 / 4).toFixed(2) : 0;
-  // Chess: $60/week, or $220/month => $55/week equivalent when monthly
-  const chessWeekly = input.chessEnabled
-    ? +(input.frequency === 'monthly' ? (220 / 4) : 60).toFixed(2)
-    : 0;
+  // Chess:
+  // - 1x/week: $60/week, or $220/month => $55/week equivalent when monthly
+  // - 2x/week: $100/week (no monthly alt provided)
+  let chessWeekly = 0;
+  if (input.chessPlan === '1x') {
+    chessWeekly = +(input.frequency === 'monthly' ? (220 / 4) : 60).toFixed(2);
+  } else if (input.chessPlan === '2x') {
+    // $100 per 2 weeks => $50/week equivalent across billing frequencies
+    chessWeekly = 50;
+  }
 
   // Apply Searingtown discount (40%) to base + add-ons, only if enrolled 2+ days/week
   // School discount applies only to core program (base + time add-ons), not abacus
@@ -109,7 +115,8 @@ export function calculatePrice(input: PricingInput): PricingBreakdown {
   finalWeekly = +finalWeekly.toFixed(2);
 
   const periodWeeks = periodWeeksFor(input.frequency);
-  const registrationFee = input.abacusEnabled && !input.isCarrington ? 90 : 0;
+  // Registration is an independent add-on now
+  const registrationFee = input.registrationEnabled ? 90 : 0;
   const totalForPeriod = +((finalWeekly * periodWeeks) + registrationFee).toFixed(2);
 
   return {
