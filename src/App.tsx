@@ -649,7 +649,7 @@ function App() {
                       />
                       <span className="text-gray-900">2x/week</span>
                     </div>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">+$100/week</span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700 border border-rose-200">+$100 per 2 weeks</span>
                   </label>
                 </div>
                 <p className="text-xs text-gray-600 mt-2">No school or prepay discounts apply to Chess.</p>
@@ -657,7 +657,8 @@ function App() {
 
               {/* Billing frequency */}
               <div className="md:col-start-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Billing Frequency</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Billing Frequency</label>
+                <p className="text-xs text-gray-600 mb-2">class available Mon/Thur 4:00 pm to 5:5pm , must provide the complete payment</p>
                 <select
                   value={frequency}
                   onChange={(e) => setFrequency(e.target.value as BillingFrequency)}
