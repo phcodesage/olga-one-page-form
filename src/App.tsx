@@ -238,17 +238,7 @@ function App() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-8 relative">
           <fieldset disabled={isSubmitting || submitted} className={isSubmitting ? 'opacity-60 pointer-events-none' : ''}>
-          {/* Special Offer Notice */}
-          <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full mb-4">
-              <CheckCircle2 className="w-6 h-6 text-orange-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-rose-700 mb-2">
-              Searingtown Elementary School Special
-            </h2>
-            <p className="text-xl font-semibold text-orange-800">40% Off</p>
-            <p className="text-orange-700 mt-2">Exclusive discount for Searingtown families</p>
-          </div>  
+          {/* Special Offer removed */}
 
           {/* Child Information (moved to top) */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -613,7 +603,7 @@ function App() {
               </div>
 
               {/* Abacus add-on */}
-              <div>
+              <div className="md:col-start-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="block text-sm font-medium text-gray-700">Abacus classes</span>
                   <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -635,7 +625,7 @@ function App() {
               </div>
 
               {/* Chess add-on */}
-              <div>
+              <div className="md:col-start-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="block text-sm font-medium text-gray-700">Chess classes</span>
                   <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -647,7 +637,7 @@ function App() {
               </div>
 
               {/* Billing frequency */}
-              <div>
+              <div className="md:col-start-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Billing Frequency</label>
                 <select
                   value={frequency}
