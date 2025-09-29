@@ -297,8 +297,6 @@ function App() {
                   <option value="4th Grade">4th Grade</option>
                   <option value="5th Grade">5th Grade</option>
                   <option value="6th Grade">6th Grade</option>
-                  <option value="7th Grade">7th Grade</option>
-                  <option value="8th Grade">8th Grade</option>
                 </select>
               </div>
               
