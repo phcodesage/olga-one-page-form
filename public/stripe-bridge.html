@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Completing payment…</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; padding:24px; color:#111; }
+      .card { max-width: 520px; margin: 10vh auto; border:1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.06) }
+      .title { font-weight: 700; color:#0f766e; margin-bottom: 6px; }
+      .muted { color:#6b7280; font-size:14px }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">Finalizing your payment…</div>
+      <div class="muted">You can close this tab if it doesn't close automatically.</div>
+    </div>
+    <script>
+      (function() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const sessionId = params.get('session_id');
+          const payload = { type: 'stripePaid', paid: true, sessionId };
+          try {
+            localStorage.setItem('stripe_paid', JSON.stringify({ paid: true, sessionId, ts: Date.now() }));
+          } catch (e) {}
+          // Notify opener (main form window)
+          if (window.opener && !window.opener.closed) {
+            // Use our own origin as target for safety (same-origin page)
+            window.opener.postMessage(payload, window.location.origin);
+          }
+          // Also notify via BroadcastChannel (works without opener)
+          try {
+            const ch = new BroadcastChannel('stripe-paid');
+            ch.postMessage(payload);
+            ch.close();
+          } catch (e) {
+            console.warn('BroadcastChannel not available', e);
+          }
+          // Attempt to close this tab
+          window.close();
+          // If close is blocked, still allow manual close
+          setTimeout(() => { document.title = 'Payment completed - you can close this tab'; }, 800);
+        } catch (e) {
+          console.error('bridge error', e);
+        }
+      })();
+    </script>
+  </body>
+</html>

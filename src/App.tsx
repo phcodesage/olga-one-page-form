@@ -1,11 +1,16 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Calendar, DollarSign, FileText, Loader2 } from 'lucide-react';
 import { calculatePrice, type TimeBlock, type School, type BillingFrequency } from './utils/pricing';
 import { QRCodeCanvas } from 'qrcode.react';
 
 function App() {
-  // Production: always post to Render backend
-  const apiBase = 'https://olga-one-page-form.onrender.com';
+  // Backend base URL: prefer VITE_API_BASE, else localhost in dev, else Render in prod
+  const apiBase = (
+    (import.meta as any)?.env?.VITE_API_BASE ||
+    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:3001'
+      : 'https://olga-one-page-form.onrender.com')
+  );
   const [selectedOption, setSelectedOption] = useState('');
   const [formData, setFormData] = useState({
     childName: '',
@@ -26,11 +31,6 @@ function App() {
     // Zelle fields
     zellePayerName: '',
     zelleConfirmation: '',
-    // Credit card fields
-    cardNumber: '',
-    cardExpiration: '',
-    cardSecurityCode: '',
-    cardZipCode: '',
     // Other payment notes
     paymentNotes: '',
   });
@@ -48,9 +48,69 @@ function App() {
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
 
   // Submission state
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(false); // legacy flag to show thank-you; we'll avoid using it
+  const [showSubmitSuccess, setShowSubmitSuccess] = useState(false);
   const [receipt, setReceipt] = useState<{ child?: string; parent?: string; email?: string; total?: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaymentCelebration, setShowPaymentCelebration] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentRef, setPaymentRef] = useState<string | null>(null);
+
+  // Persist state locally so Stripe redirects don't wipe the form
+  const STORAGE_KEY = 'afterschool_form_state_v1';
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s?.formData) setFormData((prev) => ({ ...prev, ...s.formData }));
+      if (typeof s?.selectedOption === 'string') setSelectedOption(s.selectedOption);
+      if ([1,2,3,4,5].includes(Number(s?.daysPerWeek))) setDaysPerWeek(Number(s.daysPerWeek) as 1|2|3|4|5);
+      if (['3-6','4-6','4-7','3-7'].includes(s?.timeBlock)) setTimeBlock(s.timeBlock);
+      if (['weekly','monthly','3months','6months','year'].includes(s?.frequency)) setFrequency(s.frequency);
+      if (typeof s?.extensionsEnabled === 'boolean') setExtensionsEnabled(s.extensionsEnabled);
+      if (typeof s?.abacusEnabled === 'boolean') setAbacusEnabled(s.abacusEnabled);
+      if (typeof s?.registrationEnabled === 'boolean') setRegistrationEnabled(s.registrationEnabled);
+      if (['none','1x','2x'].includes(s?.chessPlan)) setChessPlan(s.chessPlan);
+    } catch {}
+  }, []);
+
+  // Fallback: react to localStorage changes from the bridge tab
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'stripe_paid' || !e.newValue) return;
+      try {
+        const v = JSON.parse(e.newValue || '{}');
+        if (v?.paid) {
+          setPaymentSuccess(true);
+          setPaymentRef(String(v.sessionId || ''));
+          setFormData(prev => ({ ...prev, paymentMethod: 'stripe' } as any));
+          setShowPaymentCelebration(true);
+          setTimeout(() => setShowPaymentCelebration(false), 5000);
+        }
+      } catch {}
+      try { localStorage.removeItem('stripe_paid'); } catch {}
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const payload = {
+        formData,
+        selectedOption,
+        daysPerWeek,
+        timeBlock,
+        frequency,
+        extensionsEnabled,
+        abacusEnabled,
+        registrationEnabled,
+        chessPlan,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch {}
+  }, [formData, selectedOption, daysPerWeek, timeBlock, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -61,6 +121,120 @@ function App() {
       [name]: value
     }));
   };
+
+  // Detect Stripe success redirect and show confetti/banner
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('paid') === '1') {
+        setShowPaymentCelebration(true);
+        setPaymentSuccess(true);
+        const sid = params.get('session_id');
+        if (sid) setPaymentRef(sid);
+        // Reflect paid method in form for emails/records
+        setFormData(prev => ({ ...prev, paymentMethod: 'stripe' } as any));
+        // Auto-hide after 5 seconds
+        const t = setTimeout(() => setShowPaymentCelebration(false), 5000);
+        return () => clearTimeout(t);
+      }
+      // Fallback: if bridge already wrote to localStorage
+      const raw = localStorage.getItem('stripe_paid');
+      if (raw) {
+        try {
+          const v = JSON.parse(raw);
+          if (v?.paid) {
+            setPaymentSuccess(true);
+            setPaymentRef(String(v.sessionId || ''));
+            setFormData(prev => ({ ...prev, paymentMethod: 'stripe' } as any));
+            setShowPaymentCelebration(true);
+            setTimeout(() => setShowPaymentCelebration(false), 5000);
+          }
+        } catch {}
+        // clear so it won't retrigger
+        try { localStorage.removeItem('stripe_paid'); } catch {}
+      }
+    } catch {}
+  }, []);
+
+  // Listen for payment result from the bridge tab
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const data: any = ev.data || {};
+      try { console.debug('[bridge message]', ev.origin, data); } catch {}
+      if (data?.type === 'stripePaid' && data?.paid) {
+        setPaymentSuccess(true);
+        setPaymentRef(String(data.sessionId || ''));
+        setShowPaymentCelebration(true);
+        setFormData(prev => ({ ...prev, paymentMethod: 'stripe' } as any));
+        setTimeout(() => setShowPaymentCelebration(false), 5000);
+      }
+    };
+    window.addEventListener('message', handler);
+    // Also listen via BroadcastChannel for cases where opener is not available
+    let ch: BroadcastChannel | null = null;
+    try {
+      ch = new BroadcastChannel('stripe-paid');
+      ch.onmessage = (e) => {
+        const data: any = e.data || {};
+        try { console.debug('[bridge bc]', data); } catch {}
+        if (data?.type === 'stripePaid' && data?.paid) {
+          setPaymentSuccess(true);
+          setPaymentRef(String(data.sessionId || ''));
+          setShowPaymentCelebration(true);
+          setFormData(prev => ({ ...prev, paymentMethod: 'stripe' } as any));
+          setTimeout(() => setShowPaymentCelebration(false), 5000);
+        }
+      };
+    } catch {}
+    return () => {
+      window.removeEventListener('message', handler);
+      try { ch?.close(); } catch {}
+    };
+  }, []);
+
+  // When window regains focus, double-check localStorage marker
+  useEffect(() => {
+    const onFocus = () => {
+      try {
+        const raw = localStorage.getItem('stripe_paid');
+        if (!raw) return;
+        const v = JSON.parse(raw || '{}');
+        if (v?.paid) {
+          setPaymentSuccess(true);
+          setPaymentRef(String(v.sessionId || ''));
+          setFormData(prev => ({ ...prev, paymentMethod: 'stripe' } as any));
+          setShowPaymentCelebration(true);
+          setTimeout(() => setShowPaymentCelebration(false), 5000);
+        }
+        localStorage.removeItem('stripe_paid');
+      } catch {}
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  // Fire confetti when showing payment celebration (load UMD script dynamically)
+  useEffect(() => {
+    if (!showPaymentCelebration) return;
+    let removed = false;
+    const ensureConfetti = () => new Promise<void>((resolve) => {
+      if ((window as any).confetti) return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+      script.async = true;
+      script.onload = () => resolve();
+      document.head.appendChild(script);
+    });
+    ensureConfetti().then(() => {
+      if (removed) return;
+      const confetti = (window as any).confetti;
+      try {
+        confetti?.({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+        setTimeout(() => confetti?.({ particleCount: 90, spread: 100, origin: { y: 0.7 } }), 300);
+      } catch {}
+    });
+    return () => { removed = true; };
+  }, [showPaymentCelebration]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +248,7 @@ function App() {
       emergencyPhoneFull: `${formData.emergencyPhoneCountry} ${formData.emergencyPhone}`,
       pricingInput: { daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan },
       pricing,
-      paymentMethod: formData.paymentMethod,
+      paymentMethod: paymentSuccess ? 'stripe' : formData.paymentMethod,
     } as const;
 
     console.log('Form submitted:', payload);
@@ -91,13 +265,10 @@ function App() {
             // Zelle fields
             zellePayerName: formData.zellePayerName,
             zelleConfirmation: formData.zelleConfirmation,
-            // Credit card fields
-            cardNumber: formData.cardNumber,
-            cardExpiration: formData.cardExpiration,
-            cardSecurityCode: formData.cardSecurityCode,
-            cardZipCode: formData.cardZipCode,
             // General payment notes
             paymentNotes: formData.paymentNotes,
+            // Stripe reference when paid
+            paymentReference: paymentRef || undefined,
           },
         }),
       });
@@ -106,14 +277,31 @@ function App() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || `Email API error: ${res.status}`);
       }
-      // Show thank-you screen with basic receipt details
+      // Keep form visible; show a small success banner instead
       setReceipt({
         child: formData.childName,
         parent: formData.parentName,
         email: formData.email,
         total: pricing.totalForPeriod,
       });
-      setSubmitted(true);
+      setShowSubmitSuccess(true);
+      // Persist current state so refresh still has their entries
+      try {
+        const persist = {
+          formData,
+          selectedOption,
+          daysPerWeek,
+          timeBlock,
+          frequency,
+          extensionsEnabled,
+          abacusEnabled,
+          registrationEnabled,
+          chessPlan,
+        };
+        localStorage.setItem('afterschool_form_state_v1', JSON.stringify(persist));
+      } catch {}
+      // Re-enable the form; do not clear fields
+      setIsSubmitting(false);
     } catch (err) {
       console.error('Failed to send email', err);
       alert('Submitted locally, but failed to send confirmation email. Please try again or contact us.');
@@ -190,6 +378,56 @@ function App() {
     a.click();
   };
 
+  // Start Stripe Checkout for Card/Link payments
+  const payWithStripe = async () => {
+    try {
+      // Save state right before redirect, to be extra safe
+      try {
+        const payload = {
+          formData,
+          selectedOption,
+          daysPerWeek,
+          timeBlock,
+          frequency,
+          extensionsEnabled,
+          abacusEnabled,
+          registrationEnabled,
+          chessPlan,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch {}
+      const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan });
+      const memo = `Afterschool - ${formData.childName || 'Child'} - ${formData.parentName || 'Parent'}`;
+      const res = await fetch(`${apiBase}/api/payments/stripe/create-checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Number(pricing.totalForPeriod.toFixed(2)),
+          description: memo,
+          customer_email: formData.email,
+          metadata: {
+            childName: formData.childName,
+            parentName: formData.parentName,
+            email: formData.email,
+            daysPerWeek: String(daysPerWeek),
+            timeBlock,
+            frequency,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        alert(data?.error || 'Unable to start payment. Please try again.');
+        return;
+      }
+      // Open Stripe Checkout in a new tab to keep the form intact
+      window.open(data.url as string, '_blank', 'noopener');
+    } catch (e) {
+      console.error('Stripe start error', e);
+      alert('Unable to start payment. Please try again.');
+    }
+  };
+
   // Minimal country list with flags and dial codes (no external deps)
   const countries = [
     { code: 'US', flag: '🇺🇸', name: 'United States', dial: '+1' },
@@ -201,6 +439,35 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showPaymentCelebration && (
+        <>
+          {/* Success banner */}
+          <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50">
+            <div className="px-4 py-2 rounded-md bg-green-600 text-white shadow-lg text-sm font-semibold">
+              Payment successful! Thank you.
+            </div>
+          </div>
+          {/* Simple confetti dots */}
+          <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+            {[...Array(80)].map((_, i) => (
+              <span
+                key={i}
+                className="absolute block rounded-full opacity-90"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `-10px`,
+                  width: `${6 + Math.random() * 8}px`,
+                  height: `${6 + Math.random() * 8}px`,
+                  backgroundColor: ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6'][i % 5],
+                  transform: `translateY(${Math.random()*20}px)`,
+                  animation: `fall ${2 + Math.random() * 2}s linear ${Math.random()*0.8}s forwards`,
+                }}
+              />
+            ))}
+            <style>{`@keyframes fall{to{transform:translateY(110vh) rotate(360deg);opacity:.95}}`}</style>
+          </div>
+        </>
+      )}
       {/* Header */}
       <header className="bg-slate-800 text-white py-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -450,6 +717,7 @@ function App() {
               </div>
             </div>
           </section>
+          
 
           {/* Program Options */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -738,7 +1006,8 @@ function App() {
           </section>
 
 
-          {/* Payment Information */}
+          {/* Payment Information (hidden after successful Stripe payment) */}
+          {!(paymentSuccess || (formData as any).paymentMethod === 'stripe') && (
           <section className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center mb-6">
               <DollarSign className="w-6 h-6 text-rose-600 mr-3" />
@@ -782,7 +1051,7 @@ function App() {
                       ? 'border-rose-600 bg-rose-50 shadow-md'
                       : 'border-orange-300 hover:border-orange-400 hover:bg-orange-50'
                   }`}>
-                    <div className="text-sm font-medium text-gray-900">Credit Card</div>
+                    <div className="text-sm font-medium text-gray-900">Card / Link</div>
                   </div>
                 </label>
                 <label className="relative block cursor-pointer">
@@ -878,66 +1147,23 @@ function App() {
               </div>
             )}
 
-            {/* Credit Card Payment Details */}
+            {/* Card/Link via Stripe Checkout */}
             {formData.paymentMethod === 'credit-card' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Credit Card Information</h3>
-                <p className="text-sm text-gray-700 mb-4">To pay by credit card, please write down your card information below. The admins will receive your credit card details and process the payment manually.</p>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-2">Card Number *</label>
-                    <input
-                      type="text"
-                      id="cardNumber"
-                      name="cardNumber"
-                      value={formData.cardNumber}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
-                      placeholder="1234 5678 9012 3456"
-                      required={formData.paymentMethod === 'credit-card'}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="cardExpiration" className="block text-sm font-medium text-gray-700 mb-2">Expiration Date *</label>
-                    <input
-                      type="text"
-                      id="cardExpiration"
-                      name="cardExpiration"
-                      value={formData.cardExpiration}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
-                      placeholder="MM/YY"
-                      required={formData.paymentMethod === 'credit-card'}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="cardSecurityCode" className="block text-sm font-medium text-gray-700 mb-2">Security Code *</label>
-                    <input
-                      type="text"
-                      id="cardSecurityCode"
-                      name="cardSecurityCode"
-                      value={formData.cardSecurityCode}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
-                      placeholder="123"
-                      required={formData.paymentMethod === 'credit-card'}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label htmlFor="cardZipCode" className="block text-sm font-medium text-gray-700 mb-2">ZIP Code *</label>
-                    <input
-                      type="text"
-                      id="cardZipCode"
-                      name="cardZipCode"
-                      value={formData.cardZipCode}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:border-rose-600 focus:ring-2 focus:ring-rose-100 outline-none"
-                      placeholder="12345"
-                      required={formData.paymentMethod === 'credit-card'}
-                    />
-                  </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Pay with Card / Link</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  You will be redirected to a secure Stripe Checkout page to pay by card or Link.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={payWithStripe}
+                    className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+                  >
+                    Pay with Card / Link (${price.totalForPeriod.toFixed(2)})
+                  </button>
+                  <p className="text-xs text-gray-600 self-center">After payment, please complete the registration submission below.</p>
                 </div>
-                <p className="text-xs text-gray-600 mt-3">Your credit card information will be sent securely to our admins who will process the payment manually. Total amount: <span className="font-bold text-rose-700">${price.totalForPeriod.toFixed(2)}</span></p>
               </div>
             )}
 
@@ -977,6 +1203,7 @@ function App() {
               />
             </div>
           </section>
+          )}
 
           {/* Terms and Conditions */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -1023,6 +1250,22 @@ function App() {
               </div>
             </div>
           </section>
+
+          {/* Payment receipt notice (after successful payment) */}
+          {paymentSuccess && (
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg p-4 text-sm">
+              <div className="font-semibold">Payment received via Stripe</div>
+              <div>Reference: <span className="font-mono">{paymentRef || 'N/A'}</span></div>
+            </div>
+          )}
+
+          {/* Submission success banner (keeps form visible) */}
+          {showSubmitSuccess && (
+            <div className="mb-4 bg-green-50 border border-green-200 text-green-900 rounded-lg p-4 text-sm">
+              <div className="font-semibold">Registration submitted</div>
+              <div>We emailed a confirmation to {receipt?.email || 'your email'}.</div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex flex-col items-center text-center">

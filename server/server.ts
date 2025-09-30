@@ -3,11 +3,83 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
+import Stripe from 'stripe';
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
+
+// --- Stripe: webhook must use raw body and be registered BEFORE express.json() ---
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' }) : null;
+
+// Webhook endpoint to receive payment confirmation from Stripe Checkout
+// Note: requires STRIPE_WEBHOOK_SECRET in env. Configure webhook in Stripe Dashboard or via Stripe CLI.
+app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  try {
+    if (!stripe) return res.status(500).send('Stripe not configured');
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const sig = req.headers['stripe-signature'] as string;
+    if (!webhookSecret || !sig) return res.status(400).send('Missing webhook secret or signature');
+
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err: any) {
+      console.error('Webhook signature verification failed.', err?.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const paymentIntent = session.payment_intent as string | null;
+      const amountTotal = (session.amount_total ?? 0) / 100;
+      const customerEmail = (session.customer_details?.email || session.customer_email || '') as string;
+      const meta = (session.metadata || {}) as Record<string, string>;
+
+      // Send a simple admin notification using existing email infra
+      const from = process.env.FROM_EMAIL || 'no-reply@example.com';
+      const subject = `Stripe payment received - ${meta.childName || 'Child'} (${amountTotal.toFixed(2)} USD)`;
+      const adminRecipients = [
+        'Info@exceedlearningcenterny.com',
+        'olganyc21@gmail.com',
+        'phcodesage@gmail.com',
+      ];
+      const lines = [
+        'A Stripe Checkout payment was completed.',
+        '',
+        `Amount: $${amountTotal.toFixed(2)} USD`,
+        `Payment reference (payment_intent): ${paymentIntent || 'n/a'}`,
+        `Checkout session: ${session.id}`,
+        `Email: ${customerEmail || 'n/a'}`,
+        `Description: ${meta.description || 'Afterschool Registration'}`,
+        '',
+        'Metadata:',
+        `  Child: ${meta.childName || ''}`,
+        `  Parent: ${meta.parentName || ''}`,
+        `  Days/Time: ${meta.daysPerWeek || ''} days, ${meta.timeBlock || ''}`,
+        `  Frequency: ${meta.frequency || ''}`,
+      ];
+
+      // Fire and forget; if email fails, we still ACK webhook
+      sendEmail({
+        from,
+        to: adminRecipients,
+        subject,
+        text: lines.join('\n'),
+        html: `<pre>${lines.map(l => l.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('\n')}</pre>`,
+      }).catch(err => console.error('admin stripe email error', err));
+    }
+
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error('stripe webhook error', err);
+    res.status(500).send('internal error');
+  }
+});
+
+// JSON parser for the rest of the API (must come AFTER webhook raw parser)
 app.use(express.json({ limit: '1mb' }));
 
 const PORT = process.env.PORT || 3001;
@@ -67,6 +139,87 @@ async function sendEmail(args: EmailArgs) {
   return r as any;
 }
 
+// Create Stripe Checkout Session
+app.post('/api/payments/stripe/create-checkout-session', async (req, res) => {
+  try {
+    if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const { amount, description, customer_email, metadata } = req.body || {};
+    const amt = Number(amount);
+    if (!amt || isNaN(amt) || amt <= 0) return res.status(400).json({ error: 'Invalid amount' });
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card', 'link'],
+      ...(customer_email ? { customer_email } : {}),
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: Math.round(amt * 100),
+            product_data: {
+              name: description || 'Afterschool Registration',
+            },
+          },
+        },
+      ],
+      success_url: `${frontendUrl}/stripe-bridge.html?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/?canceled=1`,
+      metadata: {
+        ...(metadata || {}),
+        description: description || 'Afterschool Registration',
+      },
+    });
+
+    return res.json({ url: session.url });
+  } catch (err: any) {
+    console.error('create-checkout-session error', err);
+    res.status(500).json({ error: err?.message || 'internal error' });
+  }
+});
+
+// Quick Stripe status check
+app.get('/api/payments/stripe/status', async (req, res) => {
+  try {
+    if (!stripe) return res.status(500).json({ ok: false, error: 'Stripe not configured (missing STRIPE_SECRET_KEY)' });
+    const bal = await stripe.balance.retrieve();
+    res.json({ ok: true, livemode: bal.livemode, available: bal.available?.[0]?.amount ?? 0 });
+  } catch (err: any) {
+    console.error('stripe status error', err);
+    res.status(500).json({ ok: false, error: err?.message || 'unknown error' });
+  }
+});
+
+// Tiny test Checkout Session ($0.50)
+app.post('/api/payments/stripe/test-session', async (req, res) => {
+  try {
+    if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card', 'link'],
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: 50,
+            product_data: { name: 'Test Payment (manual E2E check)' },
+          },
+        },
+      ],
+      success_url: `${frontendUrl}/stripe-bridge.html?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/?canceled=1`,
+      metadata: { description: 'Test Payment (manual E2E check)' },
+    });
+    res.json({ url: session.url });
+  } catch (err: any) {
+    console.error('stripe test-session error', err);
+    res.status(500).json({ error: err?.message || 'internal error' });
+  }
+});
+
 app.post('/api/send-email', async (req, res) => {
   try {
     const {
@@ -113,13 +266,18 @@ app.post('/api/send-email', async (req, res) => {
       `Weeks in period: ${pricing?.periodWeeks}`,
       `Total for period: $${pricing?.totalForPeriod?.toFixed?.(2)}`,
       '',
-      `Payment method: ${form?.paymentMethod || 'Not specified'}`,
+      `Payment method: ${form?.paymentMethod === 'stripe' ? 'Stripe (Paid)' : (form?.paymentMethod || 'Not specified')}`,
       ...(form?.paymentMethod === 'zelle' ? [
         'Zelle Details:',
         `  Recipient: payments@exceedlearningcenterny.com`,
         `  Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
         `  Payer: ${payment?.zellePayerName || 'Not provided'}`,
         `  Confirmation: ${payment?.zelleConfirmation || 'Not provided'}`,
+      ] : []),
+      ...(form?.paymentMethod === 'stripe' ? [
+        'Stripe Payment:',
+        `  Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+        `  Reference: ${payment?.paymentReference || 'Not available'}`,
       ] : []),
       ...(form?.paymentMethod === 'credit-card' ? [
         'Credit Card Details:',
@@ -196,7 +354,7 @@ app.post('/api/send-email', async (req, res) => {
         `One-time registration fee: $${pricing?.registrationFee?.toFixed?.(2)}`,
         `Total due this period: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
         '',
-        `Payment method: ${form?.paymentMethod || 'Not specified'}`,
+        `Payment method: ${form?.paymentMethod === 'stripe' ? 'Stripe (Paid)' : (form?.paymentMethod || 'Not specified')}`,
         ...(form?.paymentMethod === 'zelle' ? [
           'Zelle Payment:',
           '• Recipient: payments@exceedlearningcenterny.com',
@@ -204,6 +362,11 @@ app.post('/api/send-email', async (req, res) => {
           `• Memo: ${memo}`,
           payment?.zellePayerName ? `• Payer name: ${payment.zellePayerName}` : '',
           payment?.zelleConfirmation ? `• Confirmation: ${payment.zelleConfirmation}` : '',
+        ] : []),
+        ...(form?.paymentMethod === 'stripe' ? [
+          'Stripe Payment:',
+          `• Amount: $${pricing?.totalForPeriod?.toFixed?.(2)} USD`,
+          `• Reference: ${payment?.paymentReference || 'Not available'}`,
         ] : []),
         ...(form?.paymentMethod === 'credit-card' ? [
           'Credit Card Payment:',
@@ -274,7 +437,7 @@ app.post('/api/send-email', async (req, res) => {
 
           <div style="background:#ecfeff; border:1px solid #cffafe; border-radius:10px; padding:12px 14px;">
             <h3 style="margin:0 0 8px; font-size:16px">Payment Information</h3>
-            <p style="margin:0 0 8px"><strong>Method:</strong> ${form?.paymentMethod || 'Not specified'}</p>
+            <p style="margin:0 0 8px"><strong>Method:</strong> ${form?.paymentMethod === 'stripe' ? 'Stripe (Paid)' : (form?.paymentMethod || 'Not specified')}</p>
             ${form?.paymentMethod === 'zelle' ? `
             <ul style="margin:0; padding-left:18px; line-height:1.6">
               <li>Recipient: <strong>payments@exceedlearningcenterny.com</strong></li>
@@ -282,6 +445,11 @@ app.post('/api/send-email', async (req, res) => {
               <li>Memo: <code>${memo}</code></li>
               ${payment?.zellePayerName ? `<li>Payer name: ${payment.zellePayerName}</li>` : ''}
               ${payment?.zelleConfirmation ? `<li>Confirmation: ${payment.zelleConfirmation}</li>` : ''}
+            </ul>` : ''}
+            ${form?.paymentMethod === 'stripe' ? `
+            <ul style="margin:0; padding-left:18px; line-height:1.6">
+              <li>Amount: <strong>$${pricing?.totalForPeriod?.toFixed?.(2)} USD</strong></li>
+              <li>Reference: <code>${payment?.paymentReference || 'Not available'}</code></li>
             </ul>` : ''}
             ${form?.paymentMethod === 'credit-card' ? `
             <ul style="margin:0; padding-left:18px; line-height:1.6">
