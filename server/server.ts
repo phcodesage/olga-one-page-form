@@ -14,6 +14,20 @@ app.use(cors());
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' }) : null;
 
+// Resolve the frontend URL from env or the inbound request (origin/referer)
+function resolveFrontendUrl(req: express.Request) {
+  const envUrl = (process.env.FRONTEND_URL || '').trim();
+  if (envUrl) return envUrl.replace(/\/$/, '');
+  const candidate = (req.headers.origin as string) || (req.headers.referer as string) || '';
+  if (candidate) {
+    try {
+      const u = new URL(candidate);
+      return `${u.protocol}//${u.host}`;
+    } catch {}
+  }
+  return 'http://localhost:5173';
+}
+
 // Webhook endpoint to receive payment confirmation from Stripe Checkout
 // Note: requires STRIPE_WEBHOOK_SECRET in env. Configure webhook in Stripe Dashboard or via Stripe CLI.
 app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }), (req, res) => {
@@ -30,7 +44,6 @@ app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' 
       console.error('Webhook signature verification failed.', err?.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const paymentIntent = session.payment_intent as string | null;
@@ -143,7 +156,7 @@ async function sendEmail(args: EmailArgs) {
 app.post('/api/payments/stripe/create-checkout-session', async (req, res) => {
   try {
     if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = resolveFrontendUrl(req);
     const { amount, description, customer_email, metadata } = req.body || {};
     const amt = Number(amount);
     if (!amt || isNaN(amt) || amt <= 0) return res.status(400).json({ error: 'Invalid amount' });
@@ -195,7 +208,7 @@ app.get('/api/payments/stripe/status', async (req, res) => {
 app.post('/api/payments/stripe/test-session', async (req, res) => {
   try {
     if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = resolveFrontendUrl(req);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card', 'link'],
