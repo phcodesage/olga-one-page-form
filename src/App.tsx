@@ -284,7 +284,7 @@ function App() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || `Email API error: ${res.status}`);
       }
-      // Keep form visible; show a small success banner instead
+      // Success: hide the form and show receipt/thank-you screen with confetti
       setReceipt({
         child: formData.childName,
         parent: formData.parentName,
@@ -292,6 +292,9 @@ function App() {
         total: pricing.totalForPeriod,
       });
       setShowSubmitSuccess(true);
+      setSubmitted(true);
+      setShowPaymentCelebration(true);
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
       // Persist current state so refresh still has their entries
       try {
         const persist = {
