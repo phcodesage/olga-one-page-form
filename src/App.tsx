@@ -11,6 +11,13 @@ function App() {
       ? 'http://localhost:3001'
       : 'https://olga-one-page-form.onrender.com')
   );
+  // Separate base for email (can point to Vercel function)
+  const emailBase = (
+    (import.meta as any)?.env?.VITE_EMAIL_BASE ||
+    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:3001'
+      : 'https://olga-one-page-form.vercel.app')
+  );
   const [selectedOption, setSelectedOption] = useState('');
   const [formData, setFormData] = useState({
     childName: '',
@@ -254,7 +261,7 @@ function App() {
     console.log('Form submitted:', payload);
 
     try {
-      const res = await fetch(`${apiBase}/api/send-email`, {
+      const res = await fetch(`${emailBase}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

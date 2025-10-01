@@ -114,6 +114,12 @@ if (providerEnv === 'resend') {
   }
 }
 
+// Visibility: log chosen email provider and warn about conflicting envs
+if (providerEnv && providerEnv !== 'smtp' && process.env.SMTP_HOST) {
+  console.warn('[WARN] SMTP_* environment variables are set but EMAIL_PROVIDER is not "smtp". They will be ignored.');
+}
+console.log(`[email] Provider: ${providerEnv || (resendApiKey ? 'resend' : 'resend (no key)')}`);
+
 type EmailArgs = { from: string; to: string[]; subject: string; text: string; html?: string };
 
 let smtpTransporter: nodemailer.Transporter | null = null;
@@ -133,7 +139,7 @@ function getSmtpTransporter() {
 
 async function sendEmail(args: EmailArgs) {
   const provider = (process.env.EMAIL_PROVIDER || '').toLowerCase();
-  if (provider === 'smtp' || process.env.SMTP_HOST) {
+  if (provider === 'smtp') {
     const transporter = getSmtpTransporter();
     const info = await transporter.sendMail({
       from: args.from,
