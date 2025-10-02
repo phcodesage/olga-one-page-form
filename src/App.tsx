@@ -63,23 +63,10 @@ function App() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentRef, setPaymentRef] = useState<string | null>(null);
 
-  // Persist state locally so Stripe redirects don't wipe the form
+  // Do not persist form across reloads; ensure any old persisted state is cleared
   const STORAGE_KEY = 'afterschool_form_state_v1';
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const s = JSON.parse(raw);
-      if (s?.formData) setFormData((prev) => ({ ...prev, ...s.formData }));
-      if (typeof s?.selectedOption === 'string') setSelectedOption(s.selectedOption);
-      if ([1,2,3,4,5].includes(Number(s?.daysPerWeek))) setDaysPerWeek(Number(s.daysPerWeek) as 1|2|3|4|5);
-      if (['3-6','4-6','4-7','3-7'].includes(s?.timeBlock)) setTimeBlock(s.timeBlock);
-      if (['weekly','monthly','3months','6months','year'].includes(s?.frequency)) setFrequency(s.frequency);
-      if (typeof s?.extensionsEnabled === 'boolean') setExtensionsEnabled(s.extensionsEnabled);
-      if (typeof s?.abacusEnabled === 'boolean') setAbacusEnabled(s.abacusEnabled);
-      if (typeof s?.registrationEnabled === 'boolean') setRegistrationEnabled(s.registrationEnabled);
-      if (['none','1x','2x'].includes(s?.chessPlan)) setChessPlan(s.chessPlan);
-    } catch {}
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
   }, []);
 
   // Fallback: react to localStorage changes from the bridge tab
@@ -102,22 +89,7 @@ function App() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  useEffect(() => {
-    try {
-      const payload = {
-        formData,
-        selectedOption,
-        daysPerWeek,
-        timeBlock,
-        frequency,
-        extensionsEnabled,
-        abacusEnabled,
-        registrationEnabled,
-        chessPlan,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch {}
-  }, [formData, selectedOption, daysPerWeek, timeBlock, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan]);
+  
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -295,21 +267,6 @@ function App() {
       setSubmitted(true);
       setShowPaymentCelebration(true);
       try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
-      // Persist current state so refresh still has their entries
-      try {
-        const persist = {
-          formData,
-          selectedOption,
-          daysPerWeek,
-          timeBlock,
-          frequency,
-          extensionsEnabled,
-          abacusEnabled,
-          registrationEnabled,
-          chessPlan,
-        };
-        localStorage.setItem('afterschool_form_state_v1', JSON.stringify(persist));
-      } catch {}
       // Re-enable the form; do not clear fields
       setIsSubmitting(false);
     } catch (err) {
@@ -391,21 +348,6 @@ function App() {
   // Start Stripe Checkout for Card/Link payments
   const payWithStripe = async () => {
     try {
-      // Save state right before redirect, to be extra safe
-      try {
-        const payload = {
-          formData,
-          selectedOption,
-          daysPerWeek,
-          timeBlock,
-          frequency,
-          extensionsEnabled,
-          abacusEnabled,
-          registrationEnabled,
-          chessPlan,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      } catch {}
       const pricing = calculatePrice({ daysPerWeek, timeBlock, school, frequency, extensionsEnabled, abacusEnabled, registrationEnabled, chessPlan });
       const memo = `Afterschool - ${formData.childName || 'Child'} - ${formData.parentName || 'Parent'}`;
       const res = await fetch(`${apiBase}/api/payments/stripe/create-checkout-session`, {
