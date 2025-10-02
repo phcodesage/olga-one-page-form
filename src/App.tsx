@@ -389,6 +389,9 @@ function App() {
     { code: 'IN', flag: '🇮🇳', name: 'India', dial: '+91' },
   ];
 
+  // If card/Stripe was used, hide Zelle due/Instructions in receipt
+  const paidByCard = paymentSuccess || formData.paymentMethod === 'stripe';
+
   return (
     <div className="min-h-screen bg-gray-50">
       {showPaymentCelebration && (
@@ -448,9 +451,13 @@ function App() {
                   <li><span className="font-medium">Child:</span> {receipt.child || '-'}</li>
                   <li><span className="font-medium">Parent:</span> {receipt.parent || '-'}</li>
                   <li><span className="font-medium">Email:</span> {receipt.email || '-'}</li>
-                  <li className="pt-2 border-t"><span className="font-medium">Total due this period:</span> ${receipt.total?.toFixed(2)}</li>
+                  {!paidByCard && (
+                    <li className="pt-2 border-t"><span className="font-medium">Total due this period:</span> ${receipt.total?.toFixed(2)}</li>
+                  )}
                 </ul>
-                <p className="text-xs text-gray-600 mt-3">Please send your Zelle payment to <span className="font-semibold">payments@exceedlearningcenterny.com</span> and include the memo: Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</p>
+                {!paidByCard && (
+                  <p className="text-xs text-gray-600 mt-3">Please send your Zelle payment to <span className="font-semibold">payments@exceedlearningcenterny.com</span> and include the memo: Afterschool - {formData.childName || 'Child Name'} - {formData.parentName || 'Parent Name'}</p>
+                )}
               </div>
             )}
           </div>
